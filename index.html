@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Blender Lite Pro - Complete Edition</title>
+    <title>Blender Lite Pro - Fixed Edition</title>
     <style>
         * { box-sizing: border-box; }
         body { 
@@ -35,7 +35,20 @@
         .btn[data-mode="vertex"].active { background: #e74c3c; box-shadow: 0 0 16px rgba(231, 76, 60, 0.6); }
         .btn[data-mode="edge"].active { background: #f1c40f; color: #111; box-shadow: 0 0 16px rgba(241, 196, 15, 0.6); }
         .btn[data-mode="face"].active { background: #3498db; box-shadow: 0 0 16px rgba(52, 152, 219, 0.6); }
-        .btn[data-mode="object"].active { background: #9b59b6; box-shadow: 0 0 16px rgba(155, 89, 182, 0.6); }
+        
+        /* Botones de modo principal */
+        .mode-btn {
+            min-width: 100px; height: 56px; padding: 0 20px;
+            font-size: 13px; font-weight: bold; text-transform: uppercase;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 4px;
+        }
+        
+        #btn-object-mode { background: #9b59b6; color: white; }
+        #btn-object-mode.active { background: #8e44ad; box-shadow: 0 0 20px rgba(155, 89, 182, 0.8); }
+        
+        #btn-subobject-mode { background: #3498db; color: white; }
+        #btn-subobject-mode.active { background: #2980b9; box-shadow: 0 0 20px rgba(52, 152, 219, 0.8); }
         
         /* UI Inferior */
         #bottom-bar {
@@ -127,7 +140,7 @@
             font-size: 11px; opacity: 0.8; margin-bottom: 4px;
         }
 
-        /* Modal Controles de Cámara - ARRIBA DE BOTTOM BAR */
+        /* Modal Controles de Cámara */
         #camera-modal {
             position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%);
             background: rgba(30,30,30,0.98); padding: 20px 30px; border-radius: 16px;
@@ -205,12 +218,21 @@
         }
 
         .divider { width: 1px; background: #555; height: 40px; margin: 0 8px; }
+
+        /* Subobject controls */
+        #subobject-controls {
+            display: none;
+            gap: 10px;
+        }
+        #subobject-controls.active {
+            display: flex;
+        }
     </style>
 </head>
 <body>
 
     <div id="info-overlay">
-        <span id="mode-info">Modo Vértice • Selección: Individual</span> • 
+        <span id="mode-info">Modo Objeto</span> • 
         <span id="poly-display">6</span> Caras • 
         <span id="subsurf-info">SubSurf: OFF (Nivel 0)</span>
     </div>
@@ -254,33 +276,54 @@
         </div>
     </div>
 
-    <!-- UI Superior: Modos -->
+    <!-- UI Superior -->
     <div id="top-bar">
-        <button class="btn active" data-mode="vertex" title="Vértices">
-            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/></svg>
+        <!-- Botones de Modo Principal -->
+        <button class="btn mode-btn active" id="btn-object-mode">
+            <svg viewBox="0 0 24 24" style="width:28px;height:28px">
+                <path d="M12 2L2 7v10l10 5 10-5V7L12 2z M12 12L2 7l10-5 10 5-10 5z"/>
+            </svg>
+            <span style="font-size: 10px;">OBJETO</span>
         </button>
-        <button class="btn" data-mode="edge" title="Bordes">
-            <svg viewBox="0 0 24 24"><path d="M4 20L20 4" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg>
-        </button>
-        <button class="btn" data-mode="face" title="Caras">
-            <svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>
-        </button>
-        <button class="btn" data-mode="object" title="Objeto Completo">
-            <svg viewBox="0 0 24 24"><path d="M12 2L2 7v10l10 5 10-5V7L12 2z M12 12L2 7l10-5 10 5-10 5z"/></svg>
+        
+        <button class="btn mode-btn" id="btn-subobject-mode">
+            <svg viewBox="0 0 24 24" style="width:28px;height:28px">
+                <circle cx="6" cy="6" r="2"/>
+                <circle cx="18" cy="6" r="2"/>
+                <circle cx="6" cy="18" r="2"/>
+                <circle cx="18" cy="18" r="2"/>
+                <path d="M6 6 L18 6 M18 6 L18 18 M18 18 L6 18 M6 18 L6 6" stroke="currentColor" stroke-width="1" fill="none"/>
+            </svg>
+            <span style="font-size: 10px;">SUBOBJETOS</span>
         </button>
         
         <div class="divider"></div>
         
-        <button class="btn" id="btn-select-mode" title="Modo Selección">
-            <svg viewBox="0 0 24 24">
-                <rect x="3" y="3" width="7" height="7"/>
-                <rect x="13" y="3" width="7" height="7"/>
-                <rect x="3" y="13" width="7" height="7"/>
-            </svg>
-        </button>
+        <!-- Controles de Subobjetos (ocultos por defecto) -->
+        <div id="subobject-controls">
+            <button class="btn active" data-mode="vertex" title="Vértices">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/></svg>
+            </button>
+            <button class="btn" data-mode="edge" title="Bordes">
+                <svg viewBox="0 0 24 24"><path d="M4 20L20 4" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg>
+            </button>
+            <button class="btn" data-mode="face" title="Caras">
+                <svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>
+            </button>
+            
+            <div class="divider"></div>
+            
+            <button class="btn" id="btn-select-mode" title="Modo Selección">
+                <svg viewBox="0 0 24 24">
+                    <rect x="3" y="3" width="7" height="7"/>
+                    <rect x="13" y="3" width="7" height="7"/>
+                    <rect x="3" y="13" width="7" height="7"/>
+                </svg>
+            </button>
+        </div>
     </div>
 
-    <!-- UI Inferior: Acciones -->
+    <!-- UI Inferior -->
     <div id="bottom-bar">
         <button class="btn action-btn" id="btn-extrude">
             <svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z M8 8h8v8H8z"/></svg>
@@ -331,6 +374,7 @@
         // ==========================================
         // CONFIGURACIÓN GLOBAL
         // ==========================================
+        let isObjectMode = true; // true = Objeto, false = Subobjetos
         let isMultiSelect = false;
         let selectedObjects = [];
         let isEditing = false;
@@ -340,14 +384,14 @@
         let subsurfLevel = 2;
         let isExtruding = false;
         let initialCameraDistance = 0;
-        let currentMode = 'vertex';
+        let currentSubMode = 'vertex'; // vertex, edge, face
 
         // Sistema de medición 3D
         let measurementArrow = null;
         let measurementOrigin = new THREE.Vector3();
 
         // Edge weights para SubSurf
-        let edgeWeights = new Map(); // key: "i1_i2", value: weight (0-1)
+        let edgeWeights = new Map();
 
         // ==========================================
         // MOTOR QUAD
@@ -376,6 +420,13 @@
             }
 
             addQuad(a,b,c,d) { this.quads.push([a,b,c,d]); }
+
+            getCenterOfMass() {
+                const center = new THREE.Vector3();
+                this.baseVertices.forEach(v => center.add(v));
+                center.divideScalar(this.baseVertices.length);
+                return center;
+            }
 
             getRenderData() {
                 const positions = [];
@@ -477,7 +528,6 @@
                         const v2 = this.vertices[i2];
                         const mid = new THREE.Vector3().addVectors(v1, v2).multiplyScalar(0.5);
                         
-                        // Aplicar peso de borde (crease)
                         const weight = edgeWeights.get(key) || 0;
                         
                         if(adjacentFaces.length > 0 && weight < 1.0) {
@@ -485,7 +535,6 @@
                             adjacentFaces.forEach(fIdx => avgFace.add(facePoints[fIdx]));
                             avgFace.divideScalar(adjacentFaces.length);
                             
-                            // Interpolar entre mid y promedio de caras según peso
                             mid.lerp(avgFace, (1 - weight) * 0.5);
                         }
 
@@ -717,16 +766,16 @@
         function rebuildHandles() {
             helperGroup.clear();
             selectedObjects = [];
-            transform.detach();
-
-            if(currentMode === 'object') return; // No handles en modo objeto
+            
+            // En modo objeto no hay handles
+            if(isObjectMode) return;
 
             const verts = subsurfEnabled ? engine.baseVertices : engine.vertices;
             const quads = subsurfEnabled ? engine.baseQuads : engine.quads;
 
-            if(verts.length > 3000 && currentMode !== 'face') return;
+            if(verts.length > 3000 && currentSubMode !== 'face') return;
 
-            if(currentMode === 'vertex') {
+            if(currentSubMode === 'vertex') {
                 const geo = new THREE.SphereGeometry(0.12);
                 const mat = new THREE.MeshBasicMaterial({ color: 0xe74c3c });
                 verts.forEach((v, i) => {
@@ -736,7 +785,7 @@
                     h.userData = { type: 'vertex', index: i };
                     helperGroup.add(h);
                 });
-            } else if (currentMode === 'face') {
+            } else if (currentSubMode === 'face') {
                 const geo = new THREE.PlaneGeometry(0.25, 0.25);
                 const mat = new THREE.MeshBasicMaterial({ color: 0x3498db, side: THREE.DoubleSide, depthTest: false });
                 
@@ -758,7 +807,7 @@
                     h.userData = { type: 'face', index: i };
                     helperGroup.add(h);
                 });
-            } else if (currentMode === 'edge') {
+            } else if (currentSubMode === 'edge') {
                 const geo = new THREE.BoxGeometry(0.06, 0.06, 1);
                 const mat = new THREE.MeshBasicMaterial({ color: 0xf1c40f });
                 const processed = new Set();
@@ -804,18 +853,16 @@
 
         const transform = new TransformControls(camera, renderer.domElement);
         transform.setSpace('world');
+        transform.setSize(1.2); // Gizmo más grande y visible
+        scene.add(transform);
         
         transform.addEventListener('dragging-changed', e => {
-            if(e.value) {
-                orbit.enabled = false;
-                if(cameraMode) {
-                    orbit.enabled = true;
-                }
-            } else {
-                if(isEditing) {
+            orbit.enabled = !e.value;
+            
+            if(!e.value) {
+                // Al soltar
+                if(isEditing && !isObjectMode) {
                     showCameraModal();
-                } else {
-                    enableNormalControls();
                 }
             }
         });
@@ -835,7 +882,7 @@
         transform.addEventListener('mouseDown', () => {
             initialPositions.clear();
             
-            if(currentMode === 'object') {
+            if(isObjectMode) {
                 measurementOrigin.copy(objectGroup.position);
                 initialPositions.set(objectGroup, {
                     position: objectGroup.position.clone(),
@@ -849,6 +896,15 @@
                 selectedObjects.forEach(obj => {
                     initialPositions.set(obj, obj.position.clone());
                 });
+
+                // Para caras
+                if(h.userData.type === 'face') {
+                    const q = engine.baseQuads[h.userData.index];
+                    const verts = subsurfEnabled ? engine.baseVertices : engine.vertices;
+                    q.forEach(vIdx => {
+                        initialPositions.set(`face_${h.userData.index}_v${vIdx}`, verts[vIdx].clone());
+                    });
+                }
             }
 
             initialCameraDistance = camera.position.length();
@@ -859,14 +915,13 @@
             if(!obj) return;
 
             // MODO OBJETO
-            if(currentMode === 'object' && obj === objectGroup) {
+            if(isObjectMode && obj === objectGroup) {
                 updateMeasurementArrow(objectGroup.position);
                 
                 const initial = initialPositions.get(objectGroup);
                 if(initial) {
                     let displayText = '';
                     
-                    // Detectar tipo de transformación
                     if(transform.mode === 'translate') {
                         const distance = objectGroup.position.distanceTo(initial.position);
                         displayText = `${distance.toFixed(3)} units`;
@@ -892,7 +947,7 @@
                 return;
             }
 
-            // MODO EDICIÓN DE SUBCOMPONENTES
+            // MODO SUBOBJETOS
             const h = obj;
             if(!h || !h.userData) return;
             
@@ -926,7 +981,6 @@
                 v1.copy(h.position).addScaledVector(dir, -dist/2);
                 v2.copy(h.position).addScaledVector(dir, dist/2);
             } else if (type === 'face') {
-                // Mover cara: mover todos los vértices de la cara
                 if(h.userData.index >= 0 && h.userData.index < engine.baseQuads.length) {
                     const q = engine.baseQuads[h.userData.index];
                     const delta = new THREE.Vector3().subVectors(h.position, initialPositions.get(h));
@@ -951,8 +1005,7 @@
             }
 
             if(isExtruding || transform.dragging) {
-                const currentDistance = h.position.length();
-                const targetDistance = Math.max(initialCameraDistance * 1.2, currentDistance * 1.5);
+                const targetDistance = Math.max(initialCameraDistance * 1.2, initialCameraDistance * 1.5);
                 const newDistance = THREE.MathUtils.lerp(camera.position.length(), targetDistance, 0.03);
                 camera.position.setLength(newDistance);
             }
@@ -965,58 +1018,134 @@
             measurementArrow.visible = false;
             isExtruding = false;
             
-            if(currentMode !== 'vertex') rebuildHandles();
+            if(currentSubMode !== 'vertex' && !isObjectMode) rebuildHandles();
         });
 
         // ==========================================
         // UI EVENTS
         // ==========================================
-        function setMode(m) {
-            currentMode = m;
+        
+        // ALTERNAR MODO OBJETO / SUBOBJETOS
+        document.getElementById('btn-object-mode').onclick = () => {
+            if(isObjectMode) return; // Ya estamos en modo objeto
+            
+            isObjectMode = true;
+            isEditing = false;
+            
+            // UI
+            document.getElementById('btn-object-mode').classList.add('active');
+            document.getElementById('btn-subobject-mode').classList.remove('active');
+            document.getElementById('subobject-controls').classList.remove('active');
+            document.getElementById('mode-info').innerText = 'Modo Objeto';
+            
+            // Limpiar selección y handles
+            hideEdgeWeightPanel();
+            hideCameraModal();
+            rebuildHandles(); // Esto limpiará todos los handles
+            
+            // Attach gizmo al objeto
+            const center = engine.getCenterOfMass();
+            objectGroup.position.copy(center);
+            
+            // Mover mesh al origen local
+            mainMesh.position.copy(center).negate();
+            wireMesh.position.copy(center).negate();
+            cageMesh.position.copy(center).negate();
+            helperGroup.position.copy(center).negate();
+            
+            // Ajustar vértices
+            engine.baseVertices.forEach(v => v.sub(center));
+            engine.vertices.forEach(v => v.sub(center));
+            
+            updateScene();
+            
+            // Activar gizmo en el objeto
+            transform.attach(objectGroup);
+            transform.setMode('translate');
+            transform.visible = true;
+            
+            measurementOrigin.copy(objectGroup.position);
+            enableNormalControls();
+        };
+        
+        document.getElementById('btn-subobject-mode').onclick = () => {
+            if(!isObjectMode) return; // Ya estamos en modo subobjetos
+            
+            isObjectMode = false;
+            
+            // UI
+            document.getElementById('btn-object-mode').classList.remove('active');
+            document.getElementById('btn-subobject-mode').classList.add('active');
+            document.getElementById('subobject-controls').classList.add('active');
+            
+            const modeNames = { vertex: 'Vértice', edge: 'Borde', face: 'Cara' };
+            const selectMode = isMultiSelect ? 'Múltiple' : 'Individual';
+            document.getElementById('mode-info').innerText = `Modo ${modeNames[currentSubMode]} • Selección: ${selectMode}`;
+            
+            // Desactivar gizmo del objeto
+            transform.detach();
+            
+            // Aplanar transformación del grupo al mesh
+            const worldPos = new THREE.Vector3();
+            const worldQuat = new THREE.Quaternion();
+            const worldScale = new THREE.Vector3();
+            objectGroup.matrixWorld.decompose(worldPos, worldQuat, worldScale);
+            
+            // Aplicar transformación a vértices
+            const matrix = objectGroup.matrix.clone();
+            engine.baseVertices.forEach(v => v.applyMatrix4(matrix));
+            engine.vertices.forEach(v => v.applyMatrix4(matrix));
+            
+            // Reset grupo
+            objectGroup.position.set(0, 0, 0);
+            objectGroup.rotation.set(0, 0, 0);
+            objectGroup.scale.set(1, 1, 1);
+            objectGroup.updateMatrix();
+            
+            // Reset mesh positions
+            mainMesh.position.set(0, 0, 0);
+            wireMesh.position.set(0, 0, 0);
+            cageMesh.position.set(0, 0, 0);
+            helperGroup.position.set(0, 0, 0);
+            
+            updateScene();
+            rebuildHandles();
+            enableNormalControls();
+        };
+
+        // Submodos
+        function setSubMode(m) {
+            currentSubMode = m;
             document.querySelectorAll('.btn[data-mode]').forEach(b => b.classList.remove('active'));
             const modeBtn = document.querySelector(`.btn[data-mode="${m}"]`);
             if(modeBtn) modeBtn.classList.add('active');
 
-            const modeNames = { vertex: 'Vértice', edge: 'Borde', face: 'Cara', object: 'Objeto' };
+            const modeNames = { vertex: 'Vértice', edge: 'Borde', face: 'Cara' };
             const selectMode = isMultiSelect ? 'Múltiple' : 'Individual';
             document.getElementById('mode-info').innerText = `Modo ${modeNames[m]} • Selección: ${selectMode}`;
 
-            // Ocultar edge weight panel
-            document.getElementById('edge-weight-panel').classList.remove('active');
-
-            // Modo objeto: attach transform al grupo
-            if(m === 'object') {
-                transform.attach(objectGroup);
-                transform.setMode('translate');
-                transform.showX = transform.showY = transform.showZ = true;
-                selectedObjects = [objectGroup];
-                measurementOrigin.copy(objectGroup.position);
-            } else {
-                if(transform.object === objectGroup) {
-                    transform.detach();
-                }
-            }
-
+            hideEdgeWeightPanel();
             rebuildHandles();
             updateScene();
         }
 
-        document.querySelectorAll('.btn[data-mode]').forEach(b => b.onclick = () => setMode(b.dataset.mode));
+        document.querySelectorAll('.btn[data-mode]').forEach(b => {
+            b.onclick = () => setSubMode(b.dataset.mode);
+        });
 
         document.getElementById('btn-select-mode').onclick = () => {
-            if(currentMode === 'object') return; // No multi-select en modo objeto
-            
             isMultiSelect = !isMultiSelect;
             const btn = document.getElementById('btn-select-mode');
             btn.classList.toggle('active', isMultiSelect);
             
             const selectMode = isMultiSelect ? 'Múltiple' : 'Individual';
-            const modeNames = { vertex: 'Vértice', edge: 'Borde', face: 'Cara', object: 'Objeto' };
-            document.getElementById('mode-info').innerText = `Modo ${modeNames[currentMode]} • Selección: ${selectMode}`;
+            const modeNames = { vertex: 'Vértice', edge: 'Borde', face: 'Cara' };
+            document.getElementById('mode-info').innerText = `Modo ${modeNames[currentSubMode]} • Selección: ${selectMode}`;
         };
 
+        // Acciones
         document.getElementById('btn-extrude').onclick = () => {
-            if(currentMode === 'face' && selectedObjects.length > 0) {
+            if(currentSubMode === 'face' && selectedObjects.length > 0 && !isObjectMode) {
                 isExtruding = true;
                 selectedObjects.forEach(obj => {
                     if(obj.userData.type === 'face') {
@@ -1037,7 +1166,7 @@
         };
 
         document.getElementById('btn-delete').onclick = () => {
-            if(currentMode === 'face' && selectedObjects.length > 0) {
+            if(currentSubMode === 'face' && selectedObjects.length > 0 && !isObjectMode) {
                 const indices = selectedObjects.map(o => o.userData.index).sort((a,b) => b-a);
                 indices.forEach(idx => engine.deleteFace(idx));
                 transform.detach();
@@ -1046,7 +1175,7 @@
             }
         };
 
-        // SubSurf Toggle
+        // SubSurf
         document.getElementById('toggle-subsurf').onclick = function() {
             subsurfEnabled = !subsurfEnabled;
             this.classList.toggle('active', subsurfEnabled);
@@ -1058,10 +1187,9 @@
                 `SubSurf: ${subsurfEnabled ? 'ON' : 'OFF'} (Nivel ${subsurfEnabled ? subsurfLevel : 0})`;
             
             updateScene();
-            rebuildHandles();
+            if(!isObjectMode) rebuildHandles();
         };
 
-        // SubSurf Level Slider
         document.getElementById('subsurf-level').oninput = function() {
             subsurfLevel = parseInt(this.value);
             document.getElementById('subsurf-level-value').innerText = subsurfLevel;
@@ -1072,12 +1200,11 @@
             }
         };
 
-        // Edge Weight Slider
+        // Edge Weight
         document.getElementById('edge-weight-slider').oninput = function() {
             const weight = parseInt(this.value) / 100;
             document.getElementById('weight-display').innerText = weight.toFixed(2);
             
-            // Aplicar peso al borde seleccionado
             if(selectedObjects.length > 0 && selectedObjects[0].userData.type === 'edge') {
                 const edgeKey = selectedObjects[0].userData.edgeKey;
                 edgeWeights.set(edgeKey, weight);
@@ -1088,7 +1215,6 @@
             }
         };
 
-        // Mostrar panel de peso al seleccionar borde
         function showEdgeWeightPanel(edgeKey) {
             const panel = document.getElementById('edge-weight-panel');
             panel.classList.add('active');
@@ -1124,7 +1250,9 @@
             hideEdgeWeightPanel();
             transform.detach();
             selectedObjects = [];
-            helperGroup.children.forEach(c => resetHandleColor(c));
+            if(!isObjectMode) {
+                helperGroup.children.forEach(c => resetHandleColor(c));
+            }
         };
 
         function updateCameraButtons() {
@@ -1177,8 +1305,8 @@
                e.target.closest('.camera-btn') || e.target.closest('#camera-modal') ||
                e.target.closest('#edge-weight-panel')) return;
 
-            // Modo objeto: no raycasting
-            if(currentMode === 'object') return;
+            // En modo objeto no hay raycasting a handles
+            if(isObjectMode) return;
 
             const r = renderer.domElement.getBoundingClientRect();
             mouse.x = ((e.clientX - r.left)/r.width)*2-1;
@@ -1189,7 +1317,6 @@
             if(hits.length > 0) {
                 const hit = hits[0].object;
 
-                // Ocultar panel de peso si no es borde
                 if(hit.userData.type !== 'edge') {
                     hideEdgeWeightPanel();
                 }
@@ -1215,11 +1342,11 @@
                 } else {
                     selectedObjects = [hit];
                     transform.attach(hit);
+                    transform.visible = true;
                     
                     helperGroup.children.forEach(c => resetHandleColor(c));
                     hit.material.color.setHex(0xffffff);
 
-                    // Guardar posiciones iniciales para caras
                     if(hit.userData.type === 'face') {
                         const q = engine.baseQuads[hit.userData.index];
                         const verts = subsurfEnabled ? engine.baseVertices : engine.vertices;
@@ -1229,7 +1356,6 @@
                         initialPositions.set(hit, hit.position.clone());
                     }
 
-                    // Mostrar panel de peso si es borde
                     if(hit.userData.type === 'edge') {
                         showEdgeWeightPanel(hit.userData.edgeKey);
                     }
@@ -1245,7 +1371,7 @@
             }
         });
 
-        // Atajos de teclado para cambiar modo de transform
+        // Atajos
         window.addEventListener('keydown', e => {
             if(e.key === 'g' || e.key === 'G') {
                 transform.setMode('translate');
@@ -1273,7 +1399,22 @@
         // INIT
         // ==========================================
         updateScene();
-        rebuildHandles();
+        
+        // Iniciar en modo objeto
+        const center = engine.getCenterOfMass();
+        objectGroup.position.copy(center);
+        mainMesh.position.copy(center).negate();
+        wireMesh.position.copy(center).negate();
+        cageMesh.position.copy(center).negate();
+        helperGroup.position.copy(center).negate();
+        engine.baseVertices.forEach(v => v.sub(center));
+        engine.vertices.forEach(v => v.sub(center));
+        updateScene();
+        
+        transform.attach(objectGroup);
+        transform.setMode('translate');
+        transform.visible = true;
+        measurementOrigin.copy(objectGroup.position);
 
         function animate() {
             requestAnimationFrame(animate);
