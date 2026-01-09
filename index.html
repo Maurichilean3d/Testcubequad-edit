@@ -3,104 +3,105 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Web 3D Modeler - Vértices, Bordes y Caras</title>
+    <title>3D Editor - ESM Version</title>
     <style>
-        body { margin: 0; overflow: hidden; background-color: #151515; font-family: 'Segoe UI', sans-serif; touch-action: none; }
+        body { margin: 0; overflow: hidden; background-color: #1a1a1a; font-family: sans-serif; touch-action: none; }
         
-        /* --- BARRA SUPERIOR (MODOS) --- */
+        /* UI SUPERIOR */
         #top-bar {
             position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
-            display: flex; gap: 10px; background: rgba(30, 30, 30, 0.95);
-            padding: 8px 12px; border-radius: 12px; border: 1px solid #444;
-            backdrop-filter: blur(5px); pointer-events: auto; z-index: 10;
+            display: flex; gap: 10px; background: rgba(40, 40, 40, 0.9);
+            padding: 10px 15px; border-radius: 12px; border: 1px solid #555;
+            backdrop-filter: blur(4px); z-index: 10;
         }
 
         .mode-btn {
-            width: 45px; height: 45px; border: none; border-radius: 8px;
-            background: #333; color: #aaa; cursor: pointer; 
-            display: flex; align-items: center; justify-content: center;
-            transition: all 0.2s;
+            width: 40px; height: 40px; border: none; border-radius: 8px;
+            background: #333; color: #888; cursor: pointer; display: flex; align-items: center; justify-content: center;
+            transition: 0.2s;
         }
-        
         .mode-btn:hover { background: #444; color: white; }
-        .mode-btn svg { width: 24px; height: 24px; fill: currentColor; }
+        .mode-btn.active { color: white; transform: scale(1.1); }
         
-        .mode-btn.active[data-mode="vertex"] { background: #e74c3c; color: white; box-shadow: 0 0 10px rgba(231, 76, 60, 0.4); }
-        .mode-btn.active[data-mode="edge"] { background: #f1c40f; color: black; box-shadow: 0 0 10px rgba(241, 196, 15, 0.4); }
-        .mode-btn.active[data-mode="face"] { background: #3498db; color: white; box-shadow: 0 0 10px rgba(52, 152, 219, 0.4); }
+        /* Colores de estado */
+        .mode-btn.active[data-mode="vertex"] { background: #e74c3c; box-shadow: 0 0 10px rgba(231, 76, 60, 0.5); }
+        .mode-btn.active[data-mode="edge"] { background: #f1c40f; box-shadow: 0 0 10px rgba(241, 196, 15, 0.5); color: #222; }
+        .mode-btn.active[data-mode="face"] { background: #3498db; box-shadow: 0 0 10px rgba(52, 152, 219, 0.5); }
 
-        /* --- UI INFERIOR (SOLDAR) --- */
+        .icon { width: 20px; height: 20px; fill: currentColor; }
+
+        /* PANEL INFERIOR (SOLDAR) */
         #weld-panel {
-            position: absolute; bottom: -200px; left: 0; width: 100%;
-            background: #2c3e50; color: white; border-top: 4px solid #2ecc71;
-            padding: 25px 0; transition: bottom 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            box-shadow: 0 -5px 30px rgba(0,0,0,0.6); z-index: 100;
+            position: absolute; bottom: -150px; left: 0; width: 100%;
+            background: #2d3436; color: white; padding: 20px 0;
+            border-top: 3px solid #00b894; transition: bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex; flex-direction: column; align-items: center;
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.5); z-index: 20;
         }
-        
         #weld-panel.visible { bottom: 0; }
 
-        .weld-controls { display: flex; gap: 20px; margin-top: 15px; }
-        
-        .action-btn {
-            padding: 12px 30px; border: none; border-radius: 8px; 
-            font-weight: bold; cursor: pointer; font-size: 1rem;
-        }
-        .btn-yes { background: #2ecc71; color: white; }
-        .btn-no { background: #e74c3c; color: white; }
+        .weld-btns { display: flex; gap: 15px; margin-top: 15px; }
+        .btn-action { padding: 10px 25px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .btn-yes { background: #00b894; color: white; }
+        .btn-no { background: #d63031; color: white; }
 
-        #hint {
-            position: absolute; bottom: 30px; width: 100%; text-align: center;
-            color: #666; font-size: 13px; pointer-events: none; transition: opacity 0.3s;
+        /* PANTALLA DE CARGA / ERROR */
+        #loader {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #111; color: #fff; display: flex; align-items: center; justify-content: center;
+            z-index: 9999; flex-direction: column;
         }
     </style>
 </head>
 <body>
 
+    <div id="loader">Cargando Three.js...<br><small>(Si esto no desaparece, revisa tu conexión)</small></div>
+
     <div id="top-bar">
-        <button class="mode-btn active" data-mode="vertex" title="Vértices">
-            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/></svg>
+        <button class="mode-btn active" data-mode="vertex" title="Vértice">
+            <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/></svg>
         </button>
-        <button class="mode-btn" data-mode="edge" title="Bordes">
-            <svg viewBox="0 0 24 24"><path d="M4 20L20 4" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg>
+        <button class="mode-btn" data-mode="edge" title="Borde">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M4 20L20 4" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg>
         </button>
-        <button class="mode-btn" data-mode="face" title="Caras">
-            <svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>
+        <button class="mode-btn" data-mode="face" title="Cara">
+            <svg class="icon" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>
         </button>
     </div>
 
-    <div id="hint">Selecciona un elemento para editar</div>
-
     <div id="weld-panel">
-        <div style="font-size: 1.2rem; font-weight: 600;">🔗 Fusión Detectada</div>
-        <div style="color: #bdc3c7;">¿Deseas soldar estos puntos?</div>
-        <div class="weld-controls">
-            <button class="action-btn btn-yes" id="btn-weld-yes">SÍ, UNIR</button>
-            <button class="action-btn btn-no" id="btn-weld-no">CANCELAR</button>
+        <div>🔗 Fusión Detectada</div>
+        <div class="weld-btns">
+            <button class="btn-action btn-yes" id="btn-yes">SOLDAR</button>
+            <button class="btn-action btn-no" id="btn-no">CANCELAR</button>
         </div>
     </div>
 
     <script type="importmap">
-        {
-            "imports": {
-                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
-            }
+    {
+        "imports": {
+            "three": "https://ga.jspm.io/npm:three@0.160.0/build/three.module.js",
+            "three/addons/": "https://ga.jspm.io/npm:three@0.160.0/examples/jsm/"
         }
+    }
     </script>
 
     <script type="module">
+        // Importamos Three y addons
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { TransformControls } from 'three/addons/controls/TransformControls.js';
 
-        // --- 1. SETUP ESCENA ---
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x151515);
-        scene.add(new THREE.GridHelper(30, 30, 0x333333, 0x222222));
+        // Ocultar pantalla de carga si todo salió bien
+        document.getElementById('loader').style.display = 'none';
 
-        const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(5, 4, 6);
+        // --- 1. ESCENA ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x1a1a1a);
+        scene.add(new THREE.GridHelper(20, 20, 0x333333, 0x222222));
+
+        const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(4, 3, 5);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -111,211 +112,170 @@
         light.position.set(5, 10, 7);
         scene.add(light, new THREE.AmbientLight(0xffffff, 0.5));
 
-        // --- 2. GEOMETRÍA ---
-        // Usamos toNonIndexed para tener control total de los vértices (Exploded logic)
+        // --- 2. OBJETO ---
         let geometry = new THREE.BoxGeometry(2, 2, 2).toNonIndexed();
-        const material = new THREE.MeshStandardMaterial({
+        const material = new THREE.MeshStandardMaterial({ 
             color: 0x555555, roughness: 0.5, metalness: 0.1,
             polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1
         });
         const cube = new THREE.Mesh(geometry, material);
         scene.add(cube);
 
-        // Wireframe (Líneas negras)
         let wireframe = new THREE.LineSegments(
             new THREE.EdgesGeometry(geometry),
             new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 2 })
         );
         cube.add(wireframe);
 
-        // --- 3. GENERADOR DE HANDLES ---
-        const helpersGroup = new THREE.Group();
-        scene.add(helpersGroup);
+        // --- 3. GENERAR PUNTOS DE CONTROL ---
+        const helpers = new THREE.Group();
+        scene.add(helpers);
 
-        let vertexHandles = [], edgeHandles = [], faceHandles = [];
-        let mapVertex = []; // Mapa: ID Handle -> [Indices reales]
+        let vHandles = [], eHandles = [], fHandles = [];
+        let mapV = []; // ID -> [indices reales]
 
-        function generateHelpers() {
-            helpersGroup.clear();
-            vertexHandles = []; edgeHandles = []; faceHandles = [];
-            mapVertex = [];
+        function buildHelpers() {
+            helpers.clear();
+            vHandles = []; eHandles = []; fHandles = [];
+            mapV = [];
 
             const pos = geometry.attributes.position;
-            const size = 0.15;
-
-            // -- A. VERTICES (Agrupados por posición) --
+            
+            // A. VERTICES (Unificar posiciones)
             const corners = {};
-            for(let i=0; i<pos.count; i++){
-                // Clave única basada en posición XYZ
-                const key = `${pos.getX(i).toFixed(3)},${pos.getY(i).toFixed(3)},${pos.getZ(i).toFixed(3)}`;
-                if(!corners[key]) corners[key] = [];
-                corners[key].push(i);
+            for(let i=0; i<pos.count; i++) {
+                const k = `${pos.getX(i).toFixed(3)},${pos.getY(i).toFixed(3)},${pos.getZ(i).toFixed(3)}`;
+                if(!corners[k]) corners[k] = [];
+                corners[k].push(i);
             }
 
-            let cIdx = 0;
-            const vGeo = new THREE.SphereGeometry(size);
-            const vMat = new THREE.MeshBasicMaterial({ color: 0xe74c3c, depthTest: false }); // Rojo
+            let idx = 0;
+            const vMat = new THREE.MeshBasicMaterial({ color: 0xe74c3c, depthTest: false });
+            const vGeo = new THREE.SphereGeometry(0.12);
 
-            Object.values(corners).forEach(indices => {
+            for(const k in corners) {
+                const indices = corners[k];
                 const i = indices[0];
-                const mesh = new THREE.Mesh(vGeo, vMat.clone());
-                mesh.position.set(pos.getX(i), pos.getY(i), pos.getZ(i));
-                mesh.userData = { type: 'vertex', id: cIdx };
-                mesh.renderOrder = 999; // Siempre visible encima
-                
-                helpersGroup.add(mesh);
-                vertexHandles.push(mesh);
-                mapVertex[cIdx] = indices;
-                cIdx++;
-            });
+                const m = new THREE.Mesh(vGeo, vMat.clone());
+                m.position.set(pos.getX(i), pos.getY(i), pos.getZ(i));
+                m.userData = { type: 'vertex', id: idx };
+                m.renderOrder = 10;
+                helpers.add(m);
+                vHandles.push(m);
+                mapV[idx] = indices;
+                idx++;
+            }
 
-            // -- B. BORDES (Conectan 2 vertices cercanos) --
-            let eIdx = 0;
-            const eMat = new THREE.MeshBasicMaterial({ color: 0xf1c40f, depthTest: false }); // Amarillo
-            
-            for(let i=0; i<vertexHandles.length; i++) {
-                for(let j=i+1; j<vertexHandles.length; j++) {
-                    const v1 = vertexHandles[i];
-                    const v2 = vertexHandles[j];
-                    const dist = v1.position.distanceTo(v2.position);
-
-                    // Si la distancia es aprox 2 (lado del cubo) o menor si se deforma, pero no diagonal (2.8)
-                    // Filtro simple para demo: bordes < 2.2 y > 0.1
-                    if(dist > 0.1 && dist < 2.2) {
-                        const mid = new THREE.Vector3().addVectors(v1.position, v2.position).multiplyScalar(0.5);
-                        const mesh = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, dist), eMat.clone());
-                        mesh.position.copy(mid);
-                        mesh.lookAt(v2.position);
-                        mesh.userData = { type: 'edge', v1: i, v2: j };
-                        
-                        helpersGroup.add(mesh);
-                        edgeHandles.push(mesh);
+            // B. BORDES (Conectar vertices cercanos)
+            const eMat = new THREE.MeshBasicMaterial({ color: 0xf1c40f, depthTest: false });
+            for(let i=0; i<vHandles.length; i++) {
+                for(let j=i+1; j<vHandles.length; j++) {
+                    const p1 = vHandles[i].position;
+                    const p2 = vHandles[j].position;
+                    const d = p1.distanceTo(p2);
+                    if(d > 0.1 && d < 2.1) {
+                        const mid = new THREE.Vector3().addVectors(p1, p2).multiplyScalar(0.5);
+                        const m = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, d), eMat.clone());
+                        m.position.copy(mid);
+                        m.lookAt(p2);
+                        m.userData = { type: 'edge', v1: i, v2: j };
+                        helpers.add(m);
+                        eHandles.push(m);
                     }
                 }
             }
 
-            // -- C. CARAS (Centros de 4 vertices) --
-            // Generación simplificada basada en normales del cubo original
-            const fGeo = new THREE.PlaneGeometry(0.6, 0.6);
-            const fMat = new THREE.MeshBasicMaterial({ color: 0x3498db, depthTest: false, side: THREE.DoubleSide, transparent: true, opacity: 0.8 });
+            // C. CARAS (Centros)
+            const fMat = new THREE.MeshBasicMaterial({ color: 0x3498db, depthTest: false, transparent: true, opacity: 0.7, side: THREE.DoubleSide });
+            const fGeo = new THREE.PlaneGeometry(0.5, 0.5);
             
-            // Direcciones básicas de un cubo
+            // Direcciones iniciales del cubo
             const dirs = [
                 new THREE.Vector3(1,0,0), new THREE.Vector3(-1,0,0),
                 new THREE.Vector3(0,1,0), new THREE.Vector3(0,-1,0),
                 new THREE.Vector3(0,0,1), new THREE.Vector3(0,0,-1)
             ];
 
-            dirs.forEach((dir, idx) => {
-                // Posición teórica del centro de la cara
-                const center = dir.clone(); 
-                
-                // Buscar los 4 vértices más cercanos a este centro
-                const sorted = vertexHandles.map((v, i) => ({ dist: v.position.distanceTo(center), id: i }))
-                                            .sort((a, b) => a.dist - b.dist);
-                const closest4 = sorted.slice(0, 4).map(x => x.id);
+            dirs.forEach(dir => {
+                const center = dir.clone();
+                // Buscar los 4 vértices más cercanos
+                const sorted = vHandles.map((v, i) => ({ d: v.position.distanceTo(center), id: i }))
+                                       .sort((a,b) => a.d - b.d);
+                const closest = sorted.slice(0, 4).map(x => x.id);
 
-                const mesh = new THREE.Mesh(fGeo, fMat.clone());
-                mesh.position.copy(center);
-                mesh.lookAt(center.clone().add(dir));
-                mesh.userData = { type: 'face', vertIDs: closest4 };
-                
-                helpersGroup.add(mesh);
-                faceHandles.push(mesh);
+                const m = new THREE.Mesh(fGeo, fMat.clone());
+                m.position.copy(center);
+                m.lookAt(center.clone().add(dir));
+                m.userData = { type: 'face', vIDs: closest };
+                helpers.add(m);
+                fHandles.push(m);
             });
         }
-        generateHelpers();
+        buildHelpers();
 
-        // --- 4. GESTIÓN DE MODOS ---
-        let currentMode = 'vertex'; 
-
-        function setMode(mode) {
-            currentMode = mode;
-            transform.detach();
-            document.getElementById('hint').style.opacity = '1';
-            
-            // Actualizar botones
-            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-            document.querySelector(`.mode-btn[data-mode="${mode}"]`).classList.add('active');
-
-            // Mostrar/Ocultar Handles
-            vertexHandles.forEach(h => h.visible = (mode === 'vertex'));
-            edgeHandles.forEach(h => h.visible = (mode === 'edge'));
-            faceHandles.forEach(h => h.visible = (mode === 'face'));
-        }
-
-        document.querySelectorAll('.mode-btn').forEach(btn => {
-            btn.addEventListener('click', () => setMode(btn.dataset.mode));
-        });
-        setMode('vertex');
-
-        // --- 5. LÓGICA DE TRANSFORMACIÓN ---
+        // --- 4. CONTROL ---
         const orbit = new OrbitControls(camera, renderer.domElement);
         orbit.enableDamping = true;
         
         const transform = new TransformControls(camera, renderer.domElement);
         transform.setSpace('local');
-        transform.setSize(1.2); 
+        transform.setSize(1.2);
         scene.add(transform);
 
-        transform.addEventListener('dragging-changed', (e) => {
+        let currentMode = 'vertex';
+        function setMode(m) {
+            currentMode = m;
+            transform.detach();
+            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector(`[data-mode="${m}"]`).classList.add('active');
+            
+            vHandles.forEach(h => h.visible = (m === 'vertex'));
+            eHandles.forEach(h => h.visible = (m === 'edge'));
+            fHandles.forEach(h => h.visible = (m === 'face'));
+        }
+        document.querySelectorAll('.mode-btn').forEach(b => b.onclick = () => setMode(b.dataset.mode));
+        setMode('vertex');
+
+        // Logic de arrastre
+        transform.addEventListener('dragging-changed', e => {
             orbit.enabled = !e.value;
-            if(e.value) {
-                document.getElementById('hint').style.opacity = '0';
-            } else {
-                // Al soltar, verificamos soldadura
-                if(currentMode === 'vertex') checkWeld(transform.object);
-            }
+            if(!e.value && currentMode === 'vertex') checkWeld(transform.object);
         });
 
         transform.addEventListener('objectChange', () => {
-            const handle = transform.object;
-            const type = handle.userData.type;
-
-            if(type === 'vertex') {
-                updateGeoFromVertex(handle);
-            } else if(type === 'edge') {
-                // Mover Borde (Simplificado: mueve los 2 vértices)
-                // Calculamos el delta desde la última posición conocida no es fiable aquí
-                // Reconstruimos posiciones desde el centro del handle
-                const v1 = vertexHandles[handle.userData.v1];
-                const v2 = vertexHandles[handle.userData.v2];
+            const h = transform.object;
+            if(h.userData.type === 'vertex') updateGeo(h);
+            else if(h.userData.type === 'edge') {
+                const v1 = vHandles[h.userData.v1];
+                const v2 = vHandles[h.userData.v2];
+                // Truco: Mover los 2 vertices relativos al handle
+                // (Simplificado: reiniciamos posiciones desde el centro del handle)
+                const dist = v1.position.distanceTo(v2.position);
+                const axis = new THREE.Vector3(0,0,1).applyQuaternion(h.quaternion).normalize();
                 
-                // Distancia actual entre vertices
-                const currentDist = v1.position.distanceTo(v2.position);
-                const halfDir = new THREE.Vector3().subVectors(v2.position, v1.position).normalize().multiplyScalar(currentDist/2);
+                v1.position.copy(h.position).addScaledVector(axis, -dist/2);
+                v2.position.copy(h.position).addScaledVector(axis, dist/2);
                 
-                // Forzamos que v1 y v2 sigan al handle manteniendo su separación relativa
-                // (Nota: Esto impide rotar el borde con el gizmo, solo trasladar, para rotar se requiere lógica de grupo más compleja)
-                v1.position.subVectors(handle.position, halfDir);
-                v2.position.addVectors(handle.position, halfDir);
+                updateGeo(v1); updateGeo(v2);
+            }
+            else if(h.userData.type === 'face') {
+                const ids = h.userData.vIDs;
+                // Calcular centro actual
+                const center = new THREE.Vector3();
+                ids.forEach(i => center.add(vHandles[i].position));
+                center.divideScalar(ids.length);
                 
-                updateGeoFromVertex(v1);
-                updateGeoFromVertex(v2);
-            } else if(type === 'face') {
-                // Mover Cara
-                // Mueve todos los vértices asociados a la posición del handle
-                // (Requiere guardar offsets relativos para ser perfecto, aquí hacemos un "snap" de grupo)
-                const vIDs = handle.userData.vertIDs;
-                
-                // Calcular centroide actual de los vertices
-                const centroid = new THREE.Vector3();
-                vIDs.forEach(id => centroid.add(vertexHandles[id].position));
-                centroid.divideScalar(vIDs.length);
-                
-                const delta = new THREE.Vector3().subVectors(handle.position, centroid);
-                
-                vIDs.forEach(id => {
-                    vertexHandles[id].position.add(delta);
-                    updateGeoFromVertex(vertexHandles[id]);
+                const delta = new THREE.Vector3().subVectors(h.position, center);
+                ids.forEach(i => {
+                    vHandles[i].position.add(delta);
+                    updateGeo(vHandles[i]);
                 });
             }
-            
-            updateHelperPositions(handle);
+            updateHelpers(h);
         });
 
-        function updateGeoFromVertex(vHandle) {
-            const indices = mapVertex[vHandle.userData.id];
+        function updateGeo(vHandle) {
+            const indices = mapV[vHandle.userData.id];
             indices.forEach(idx => {
                 geometry.attributes.position.setXYZ(idx, vHandle.position.x, vHandle.position.y, vHandle.position.z);
             });
@@ -323,98 +283,84 @@
             updateWireframe();
         }
 
-        function updateHelperPositions(exclude) {
-            // Recalcular posiciones visuales de bordes y caras
-            edgeHandles.forEach(eh => {
-                if(eh === exclude) return;
-                const p1 = vertexHandles[eh.userData.v1].position;
-                const p2 = vertexHandles[eh.userData.v2].position;
-                eh.position.copy(p1).add(p2).multiplyScalar(0.5);
-                eh.lookAt(p2);
-                eh.scale.z = p1.distanceTo(p2);
-            });
-            
-            faceHandles.forEach(fh => {
-                if(fh === exclude) return;
-                const vIDs = fh.userData.vertIDs;
-                const center = new THREE.Vector3();
-                vIDs.forEach(id => center.add(vertexHandles[id].position));
-                center.divideScalar(vIDs.length);
-                fh.position.copy(center);
-            });
-        }
-
         function updateWireframe() {
             cube.remove(wireframe);
             wireframe.geometry.dispose();
-            wireframe = new THREE.LineSegments(new THREE.EdgesGeometry(geometry), new THREE.LineBasicMaterial({ color: 0x000000 }));
+            wireframe = new THREE.LineSegments(new THREE.EdgesGeometry(geometry), new THREE.LineBasicMaterial({color:0}));
             cube.add(wireframe);
         }
 
-        // --- 6. SISTEMA DE SOLDADO ---
-        const weldPanel = document.getElementById('weld-panel');
-        let pendingWeld = null;
+        function updateHelpers(exclude) {
+            eHandles.forEach(e => {
+                if(e === exclude) return;
+                const p1 = vHandles[e.userData.v1].position;
+                const p2 = vHandles[e.userData.v2].position;
+                e.position.copy(p1).add(p2).multiplyScalar(0.5);
+                e.lookAt(p2);
+                e.scale.z = p1.distanceTo(p2); // Ajustar largo visual
+            });
+            fHandles.forEach(f => {
+                if(f === exclude) return;
+                const ids = f.userData.vIDs;
+                const c = new THREE.Vector3();
+                ids.forEach(i => c.add(vHandles[i].position));
+                c.divideScalar(ids.length);
+                f.position.copy(c);
+            });
+        }
 
-        function checkWeld(handle) {
-            const threshold = 0.4;
+        // --- 5. SOLDAR ---
+        const panel = document.getElementById('weld-panel');
+        let pending = null;
+
+        function checkWeld(h) {
             let target = null;
-
-            for(let other of vertexHandles) {
-                if(other === handle) continue;
-                if(handle.position.distanceTo(other.position) < threshold) {
-                    target = other;
-                    break;
+            for(let other of vHandles) {
+                if(other !== h && h.position.distanceTo(other.position) < 0.4) {
+                    target = other; break;
                 }
             }
-
             if(target) {
-                pendingWeld = { active: handle, target: target };
-                weldPanel.classList.add('visible');
+                pending = { active: h, target: target };
+                panel.classList.add('visible');
             } else {
-                weldPanel.classList.remove('visible');
+                panel.classList.remove('visible');
             }
         }
 
-        document.getElementById('btn-weld-yes').onclick = () => {
-            if(pendingWeld) {
-                const { active, target } = pendingWeld;
-                active.position.copy(target.position);
-                updateGeoFromVertex(active);
-                updateHelperPositions();
+        document.getElementById('btn-yes').onclick = () => {
+            if(pending) {
+                pending.active.position.copy(pending.target.position);
+                updateGeo(pending.active);
+                updateHelpers();
             }
-            weldPanel.classList.remove('visible');
-            pendingWeld = null;
-        };
-        
-        document.getElementById('btn-weld-no').onclick = () => {
-            weldPanel.classList.remove('visible');
-            pendingWeld = null;
-        };
+            panel.classList.remove('visible');
+            pending = null;
+        }
+        document.getElementById('btn-no').onclick = () => {
+            panel.classList.remove('visible');
+            pending = null;
+        }
 
-        // --- 7. INPUT (RAYCASTER) ---
-        const raycaster = new THREE.Raycaster();
+        // --- INPUT ---
+        const ray = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 
-        window.addEventListener('pointerdown', (e) => {
+        window.addEventListener('pointerdown', e => {
             if(e.target.closest('button') || e.target.closest('#weld-panel')) return;
+            const r = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((e.clientX - r.left)/r.width)*2-1;
+            mouse.y = -((e.clientY - r.top)/r.height)*2+1;
+            ray.setFromCamera(mouse, camera);
 
-            const rect = renderer.domElement.getBoundingClientRect();
-            mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-            mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+            let objs = [];
+            if(currentMode==='vertex') objs = vHandles;
+            else if(currentMode==='edge') objs = eHandles;
+            else if(currentMode==='face') objs = fHandles;
 
-            raycaster.setFromCamera(mouse, camera);
-
-            let candidates = [];
-            if(currentMode === 'vertex') candidates = vertexHandles;
-            if(currentMode === 'edge') candidates = edgeHandles;
-            if(currentMode === 'face') candidates = faceHandles;
-
-            const intersects = raycaster.intersectObjects(candidates);
-            if(intersects.length > 0) {
-                transform.attach(intersects[0].object);
-            } else if(!transform.dragging) {
-                transform.detach();
-            }
+            const hits = ray.intersectObjects(objs);
+            if(hits.length) transform.attach(hits[0].object);
+            else if(!transform.dragging) transform.detach();
         });
 
         function animate() {
@@ -424,11 +370,11 @@
         }
         animate();
 
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
+        window.onresize = () => {
+            camera.aspect = window.innerWidth/window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
-        });
+        };
     </script>
 </body>
 </html>
