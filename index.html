@@ -382,7 +382,6 @@
         let cameraMode = null;
         let subsurfEnabled = false;
         let subsurfLevel = 2;
-        let isExtruding = false;
         let initialCameraDistance = 0;
         let currentSubMode = 'vertex'; // vertex, edge, face
 
@@ -1004,11 +1003,7 @@
                 document.getElementById('distance-display').classList.add('active');
             }
 
-            if(isExtruding || transform.dragging) {
-                const targetDistance = Math.max(initialCameraDistance * 1.2, initialCameraDistance * 1.5);
-                const newDistance = THREE.MathUtils.lerp(camera.position.length(), targetDistance, 0.03);
-                camera.position.setLength(newDistance);
-            }
+            // Auto-zoom desactivado por preferencia del usuario
 
             updateScene();
         });
@@ -1016,7 +1011,6 @@
         transform.addEventListener('mouseUp', () => {
             document.getElementById('distance-display').classList.remove('active');
             measurementArrow.visible = false;
-            isExtruding = false;
             
             if(currentSubMode !== 'vertex' && !isObjectMode) rebuildHandles();
         });
@@ -1146,7 +1140,6 @@
         // Acciones
         document.getElementById('btn-extrude').onclick = () => {
             if(currentSubMode === 'face' && selectedObjects.length > 0 && !isObjectMode) {
-                isExtruding = true;
                 selectedObjects.forEach(obj => {
                     if(obj.userData.type === 'face') {
                         engine.extrudeFace(obj.userData.index);
@@ -1154,7 +1147,6 @@
                 });
                 updateScene();
                 rebuildHandles();
-                setTimeout(() => { isExtruding = false; }, 1000);
             }
         };
 
