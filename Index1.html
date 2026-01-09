@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Blender Lite Pro - Subdivision Surface</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { 
+            margin: 0; overflow: hidden; background-color: #222; 
+            font-family: 'Segoe UI', sans-serif; touch-action: none; 
+        }
+        
+        /* UI FLOTANTE */
+        .toolbar-container {
+            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+            display: flex; gap: 12px; background: rgba(30,30,30,0.95); padding: 12px 20px;
+            border-radius: 16px; border: 1px solid #444; backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6); z-index: 100;
+        }
+
+        #top-bar { 
+            top: 15px; bottom: auto; padding: 8px 12px; 
+            flex-wrap: wrap; max-width: 90vw;
+        }
+
+        .btn {
+            width: 44px; height: 44px; border: none; border-radius: 8px; background: #3a3a3a;
+            color: #aaa; cursor: pointer; display: flex; align-items: center; justify-content: center;
+            transition: 0.2s; position: relative; font-size: 10px; font-weight: bold;
+        }
+        .btn:active { transform: scale(0.95); }
+        .btn.active { background: #3498db; color: white; box-shadow: 0 0 12px rgba(52, 152, 219, 0.4); }
+        
+        .btn svg { width: 24px; height: 24px; fill: currentColor; }
+
+        /* Colores Específicos */
+        .btn[data-mode="vertex"].active { background: #e74c3c; }
+        .btn[data-mode="edge"].active { background: #f1c40f; color: #111; }
+        
+        /* Botones de Acción */
+        .action-btn { 
+            width: auto; padding: 0 16px; height: 48px; font-weight: bold; font-size: 11px; 
+            text-transform: uppercase; flex-direction: column; gap: 4px;
+        }
+        .btn-extrude { color: #f1c40f; }
+        .btn-subdiv { color: #2ecc71; }
+        .btn-delete { color: #e74c3c; }
+
+        /* Control de Cámara */
+        #camera-controls {
+            position: absolute; right: 20px; top: 50%; transform: translateY(-50%);
+            display: none; flex-direction: column; gap: 10px; z-index: 90;
+        }
+        #camera-controls.active { display: flex; }
+        
+        .camera-btn {
+            width: 56px; height: 56px; border-radius: 50%; background: rgba(52, 152, 219, 0.9);
+            border: 2px solid #2980b9; color: white; font-size: 24px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        }
+        .camera-btn:active { transform: scale(0.9); background: #2980b9; }
+        .camera-btn.active { background: #27ae60; border-color: #229954; }
+
+        /* Modal de Edición */
+        #edit-modal {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(30,30,30,0.98); padding: 30px; border-radius: 16px;
+            border: 2px solid #3498db; display: none; z-index: 200;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+        }
+        #edit-modal.active { display: block; }
+        #edit-modal h3 { margin: 0 0 20px 0; color: #3498db; text-align: center; }
+        #edit-modal .btn-group { display: flex; gap: 15px; justify-content: center; }
+        #edit-modal .btn { width: 120px; height: 50px; }
+
+        /* Medidor de Distancia */
+        #distance-display {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(52, 152, 219, 0.95); color: white; padding: 15px 25px;
+            border-radius: 10px; font-size: 18px; font-weight: bold;
+            display: none; pointer-events: none; z-index: 150;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+        #distance-display.active { display: block; }
+
+        #info-overlay {
+            position: absolute; top: 80px; width: 100%; text-align: center;
+            color: #666; font-size: 11px; pointer-events: none; text-shadow: 0 1px 2px black;
+        }
+        
+        #warning {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+            background: rgba(231, 76, 60, 0.9); color: white; padding: 20px;
+            border-radius: 10px; display: none; pointer-events: none; font-weight: bold;
+            z-index: 250;
+        }
+
+        /* Toggle de Subdivisión Surface */
+        .toggle-container {
+            display: flex; align-items: center; gap: 10px; padding: 0 10px;
+            background: rgba(50,50,50,0.8); border-radius: 8px; height: 48px;
+        }
+        .toggle-container label { color: #aaa; font-size: 11px; white-space: nowrap; }
+        
+        .switch {
+            position: relative; width: 50px; height: 26px; background: #555;
+            border-radius: 13px; cursor: pointer; transition: 0.3s;
+        }
+        .switch.active { background: #27ae60; }
+        .switch::after {
+            content: ''; position: absolute; width: 22px; height: 22px;
+            background: white; border-radius: 50%; top: 2px; left: 2px;
+            transition: 0.3s; box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+        .switch.active::after { left: 26px; }
+
+        .divider { width: 1px; background: #555; height: 30px; margin: 0 5px; }
+    </style>
+</head>
+<body>
+
+    <div id="info-overlay">
+        <span id="mode-info">Modo Vértice • Selección: Individual</span> • 
+        <span id="poly-display">6</span> Caras • 
+        <span id="subsurf-info">SubSurf: OFF</span>
+    </div>
+    <div id="warning">¡Límite de geometría alcanzado!</div>
+    
+    <div id="distance-display">Δ 0.00 units</div>
+    
+    <div id="edit-modal">
+        <h3>🎯 Editando Geometría</h3>
+        <p style="color: #aaa; margin-bottom: 20px; text-align: center;">
+            Controles de cámara activos →
+        </p>
+        <div class="btn-group">
+            <button class="btn" id="btn-continue-edit" style="background: #27ae60;">
+                ✓ Continuar
+            </button>
+            <button class="btn" id="btn-finish-edit" style="background: #e74c3c;">
+                ✕ Finalizar
+            </button>
+        </div>
+    </div>
+
+    <div id="camera-controls">
+        <div class="camera-btn" id="btn-rotate" title="Rotar">🔄</div>
+        <div class="camera-btn" id="btn-pan" title="Paneo">✋</div>
+        <div class="camera-btn" id="btn-zoom" title="Zoom">🔍</div>
+    </div>
+
+    <div id="top-bar" class="toolbar-container">
+        <button class="btn active" data-mode="vertex" title="Vértices">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/></svg>
+        </button>
+        <button class="btn" data-mode="edge" title="Bordes">
+            <svg viewBox="0 0 24 24"><path d="M4 20L20 4" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg>
+        </button>
+        <button class="btn" data-mode="face" title="Caras">
+            <svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>
+        </button>
+        
+        <div class="divider"></div>
+        
+        <button class="btn" id="btn-select-mode" title="Modo Selección">
+            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8"/><rect x="13" y="3" width="8" height="8"/><rect x="3" y="13" width="8" height="8"/></svg>
+        </button>
+    </div>
+
+    <div class="toolbar-container">
+        <button class="btn action-btn btn-extrude" id="btn-extrude">
+            <svg viewBox="0 0 24 24" style="width:20px"><path d="M4 4h16v16H4z M8 8h8v8H8z"/></svg> Extruir
+        </button>
+        <button class="btn action-btn btn-subdiv" id="btn-subdivide">
+            <svg viewBox="0 0 24 24" style="width:20px"><path d="M3 3h18v18H3z M12 3v18 M3 12h18"/></svg> Dividir
+        </button>
+        
+        <div class="divider"></div>
+        
+        <div class="toggle-container">
+            <label>SubSurf</label>
+            <div class="switch" id="toggle-subsurf"></div>
+        </div>
+        
+        <div class="divider"></div>
+        
+        <button class="btn action-btn btn-delete" id="btn-delete">
+            <svg viewBox="0 0 24 24" style="width:20px"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg> Borrar
+        </button>
+    </div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://ga.jspm.io/npm:three@0.160.0/build/three.module.js",
+            "three/addons/": "https://ga.jspm.io/npm:three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { TransformControls } from 'three/addons/controls/TransformControls.js';
+
+        // ==========================================
+        // CONFIGURACIÓN GLOBAL
+        // ==========================================
+        let isMultiSelect = false;
+        let selectedObjects = [];
+        let isEditing = false;
+        let initialPositions = new Map();
+        let cameraMode = null; // 'rotate', 'pan', 'zoom'
+        let subsurfEnabled = false;
+        let subsurfLevel = 2;
+
+        // ==========================================
+        // 1. MOTOR QUAD
+        // ==========================================
+        class QuadEngine {
+            constructor() {
+                this.vertices = []; 
+                this.quads = [];
+                this.baseVertices = []; // Para SubSurf
+                this.baseQuads = [];
+            }
+
+            initCube() {
+                this.vertices = []; this.quads = [];
+                const s = 1; 
+                const v = [[-s,-s,s],[s,-s,s],[s,s,s],[-s,s,s],[-s,-s,-s],[s,-s,-s],[s,s,-s],[-s,s,-s]];
+                v.forEach(p => this.vertices.push(new THREE.Vector3(...p)));
+                this.addQuad(0,1,2,3); this.addQuad(5,4,7,6); this.addQuad(1,5,6,2);
+                this.addQuad(4,0,3,7); this.addQuad(3,2,6,7); this.addQuad(4,5,1,0);
+                this.saveBase();
+            }
+
+            saveBase() {
+                this.baseVertices = this.vertices.map(v => v.clone());
+                this.baseQuads = this.quads.map(q => [...q]);
+            }
+
+            addQuad(a,b,c,d) { this.quads.push([a,b,c,d]); }
+
+            getRenderData() {
+                const positions = [];
+                for(let q of this.quads) {
+                    const v = q.map(i => this.vertices[i]);
+                    if(!v[0] || !v[1] || !v[2] || !v[3]) continue;
+                    positions.push(v[0].x, v[0].y, v[0].z, v[1].x, v[1].y, v[1].z, v[2].x, v[2].y, v[2].z);
+                    positions.push(v[0].x, v[0].y, v[0].z, v[2].x, v[2].y, v[2].z, v[3].x, v[3].y, v[3].z);
+                }
+                return new Float32Array(positions);
+            }
+
+            getWireframeData() {
+                const positions = [];
+                for(let q of this.quads) {
+                    const v = q.map(i => this.vertices[i]);
+                    if(!v[0]) continue;
+                    for(let i=0; i<4; i++) {
+                        const vCurr = v[i];
+                        const vNext = v[(i+1)%4];
+                        if(!vCurr || !vNext) continue;
+                        positions.push(vCurr.x, vCurr.y, vCurr.z);
+                        positions.push(vNext.x, vNext.y, vNext.z);
+                    }
+                }
+                return new Float32Array(positions);
+            }
+
+            subdivide() {
+                if(this.quads.length > 2000) {
+                    showWarning();
+                    return;
+                }
+
+                const newQuads = [];
+                const edgeCache = new Map();
+
+                const getMid = (i1, i2) => {
+                    const key = i1<i2 ? `${i1}_${i2}` : `${i2}_${i1}`;
+                    if(edgeCache.has(key)) return edgeCache.get(key);
+                    
+                    const v1 = this.vertices[i1];
+                    const v2 = this.vertices[i2];
+                    if(!v1 || !v2) return null;
+                    
+                    const mid = new THREE.Vector3().addVectors(v1, v2).multiplyScalar(0.5);
+                    this.vertices.push(mid);
+                    const idx = this.vertices.length-1;
+                    edgeCache.set(key, idx);
+                    return idx;
+                };
+
+                for(let q of this.quads) {
+                    if(q.some(i => i >= this.vertices.length || !this.vertices[i])) continue;
+                    
+                    const v = q.map(i => this.vertices[i]);
+                    const centerPos = new THREE.Vector3().add(v[0]).add(v[1]).add(v[2]).add(v[3]).multiplyScalar(0.25);
+                    
+                    this.vertices.push(centerPos);
+                    const cIdx = this.vertices.length - 1;
+
+                    const m01 = getMid(q[0], q[1]);
+                    const m12 = getMid(q[1], q[2]);
+                    const m23 = getMid(q[2], q[3]);
+                    const m30 = getMid(q[3], q[0]);
+
+                    if(m01 === null || m12 === null || m23 === null || m30 === null) continue;
+
+                    newQuads.push([q[0], m01, cIdx, m30]);
+                    newQuads.push([m01, q[1], m12, cIdx]);
+                    newQuads.push([cIdx, m12, q[2], m23]);
+                    newQuads.push([m30, cIdx, m23, q[3]]);
+                }
+                this.quads = newQuads;
+                this.saveBase();
+            }
+
+            // CATMULL-CLARK SUBDIVISION SURFACE
+            applySubdivisionSurface(levels) {
+                // Restaurar geometría base
+                this.vertices = this.baseVertices.map(v => v.clone());
+                this.quads = this.baseQuads.map(q => [...q]);
+
+                for(let level = 0; level < levels; level++) {
+                    const newVertices = [];
+                    const newQuads = [];
+                    const edgePoints = new Map();
+                    const facePoints = [];
+                    
+                    // 1. Calcular puntos de cara (promedios)
+                    for(let q of this.quads) {
+                        const v = q.map(i => this.vertices[i]);
+                        const fp = new THREE.Vector3().add(v[0]).add(v[1]).add(v[2]).add(v[3]).multiplyScalar(0.25);
+                        facePoints.push(fp);
+                    }
+
+                    // 2. Calcular puntos de borde
+                    const getEdgePoint = (i1, i2, adjacentFaces) => {
+                        const key = i1<i2 ? `${i1}_${i2}` : `${i2}_${i1}`;
+                        if(edgePoints.has(key)) return edgePoints.get(key);
+
+                        const v1 = this.vertices[i1];
+                        const v2 = this.vertices[i2];
+                        const mid = new THREE.Vector3().addVectors(v1, v2).multiplyScalar(0.5);
+                        
+                        // Promedio con puntos de cara adyacentes
+                        if(adjacentFaces.length > 0) {
+                            adjacentFaces.forEach(fIdx => mid.add(facePoints[fIdx]));
+                            mid.divideScalar(adjacentFaces.length + 1);
+                        }
+
+                        const idx = newVertices.length;
+                        newVertices.push(mid);
+                        edgePoints.set(key, idx);
+                        return idx;
+                    };
+
+                    // 3. Actualizar vértices originales (suavizado)
+                    const vertexMapping = new Map();
+                    this.vertices.forEach((v, i) => {
+                        // Buscar caras adyacentes
+                        const adjacentFaces = [];
+                        const adjacentEdges = [];
+                        
+                        this.quads.forEach((q, qIdx) => {
+                            if(q.includes(i)) {
+                                adjacentFaces.push(qIdx);
+                                // Bordes adyacentes
+                                const idx = q.indexOf(i);
+                                const prev = q[(idx + 3) % 4];
+                                const next = q[(idx + 1) % 4];
+                                if(!adjacentEdges.some(e => e.includes(prev))) adjacentEdges.push([i, prev]);
+                                if(!adjacentEdges.some(e => e.includes(next))) adjacentEdges.push([i, next]);
+                            }
+                        });
+
+                        const n = adjacentFaces.length;
+                        if(n === 0) {
+                            vertexMapping.set(i, newVertices.length);
+                            newVertices.push(v.clone());
+                            return;
+                        }
+
+                        // Fórmula Catmull-Clark
+                        const F = new THREE.Vector3();
+                        adjacentFaces.forEach(fIdx => F.add(facePoints[fIdx]));
+                        F.divideScalar(n);
+
+                        const R = new THREE.Vector3();
+                        adjacentEdges.forEach(([i1, i2]) => {
+                            R.add(this.vertices[i1]).add(this.vertices[i2]);
+                        });
+                        R.divideScalar(adjacentEdges.length * 2);
+
+                        const newV = new THREE.Vector3();
+                        newV.addScaledVector(F, 1);
+                        newV.addScaledVector(R, 2);
+                        newV.addScaledVector(v, n - 3);
+                        newV.divideScalar(n);
+
+                        vertexMapping.set(i, newVertices.length);
+                        newVertices.push(newV);
+                    });
+
+                    // 4. Construir nuevas caras
+                    this.quads.forEach((q, qIdx) => {
+                        const fp = facePoints[qIdx];
+                        const fpIdx = newVertices.length;
+                        newVertices.push(fp);
+
+                        for(let i = 0; i < 4; i++) {
+                            const curr = q[i];
+                            const next = q[(i + 1) % 4];
+                            
+                            const vCurr = vertexMapping.get(curr);
+                            const ep = getEdgePoint(curr, next, [qIdx]);
+                            const vNext = vertexMapping.get(next);
+                            const epPrev = getEdgePoint(q[(i + 3) % 4], curr, [qIdx]);
+
+                            newQuads.push([vCurr, ep, fpIdx, epPrev]);
+                        }
+                    });
+
+                    this.vertices = newVertices;
+                    this.quads = newQuads;
+                }
+            }
+
+            extrudeFace(index) {
+                if(index < 0 || index >= this.quads.length) return;
+                const q = this.quads[index];
+                
+                if(q.some(i => i >= this.vertices.length || !this.vertices[i])) return;
+                
+                const v = q.map(i => this.vertices[i]);
+                const vA = new THREE.Vector3().subVectors(v[1], v[0]);
+                const vB = new THREE.Vector3().subVectors(v[3], v[0]);
+                const normal = new THREE.Vector3().crossVectors(vA, vB).normalize();
+                
+                const topIndices = [];
+                const dist = 0.5;
+
+                for(let i=0; i<4; i++) {
+                    const newPos = v[i].clone().add(normal.clone().multiplyScalar(dist));
+                    this.vertices.push(newPos);
+                    topIndices.push(this.vertices.length-1);
+                }
+
+                const base = [...q];
+                for(let i=0; i<4; i++) {
+                    const next = (i+1)%4;
+                    this.addQuad(base[i], base[next], topIndices[next], topIndices[i]);
+                }
+
+                this.quads[index] = topIndices;
+                this.saveBase();
+                return index;
+            }
+
+            deleteFace(index) {
+                if(index > -1 && index < this.quads.length) {
+                    this.quads.splice(index, 1);
+                    this.saveBase();
+                }
+            }
+        }
+
+        // ==========================================
+        // 2. ESCENA & RENDER
+        // ==========================================
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x222222);
+        scene.add(new THREE.GridHelper(20, 20, 0x444444, 0x333333));
+
+        const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(5, 5, 5);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        document.body.appendChild(renderer.domElement);
+
+        const light = new THREE.DirectionalLight(0xffffff, 1.5);
+        light.position.set(5, 10, 7);
+        scene.add(light, new THREE.AmbientLight(0xffffff, 0.5));
+
+        // MESH PRINCIPAL
+        const engine = new QuadEngine();
+        engine.initCube();
+
+        let mainMesh = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshStandardMaterial({ 
+            color: 0x7f8c8d, roughness: 0.5, metalness: 0.1, polygonOffset: true, polygonOffsetFactor: 1 
+        }));
+        scene.add(mainMesh);
+
+        let wireMesh = new THREE.LineSegments(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ 
+            color: 0x111111, opacity: 0.5, transparent: true 
+        }));
+        scene.add(wireMesh);
+
+        // Cage para SubSurf (malla base)
+        let cageMesh = new THREE.LineSegments(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ 
+            color: 0x3498db, opacity: 0.7, transparent: true, linewidth: 2
+        }));
+        scene.add(cageMesh);
+
+        function updateScene() {
+            mainMesh.geometry.dispose();
+            wireMesh.geometry.dispose();
+            cageMesh.geometry.dispose();
+
+            // Aplicar SubSurf si está activo
+            if(subsurfEnabled) {
+                engine.applySubdivisionSurface(subsurfLevel);
+            }
+
+            const renderData = engine.getRenderData();
+            const wireData = engine.getWireframeData();
+
+            const newMainGeo = new THREE.BufferGeometry();
+            newMainGeo.setAttribute('position', new THREE.BufferAttribute(renderData, 3));
+            newMainGeo.computeVertexNormals();
+            mainMesh.geometry = newMainGeo;
+
+            const newWireGeo = new THREE.BufferGeometry();
+            newWireGeo.setAttribute('position', new THREE.BufferAttribute(wireData, 3));
+            wireMesh.geometry = newWireGeo;
+
+            // Mostrar cage si SubSurf está activo
+            if(subsurfEnabled) {
+                const baseCopy = new QuadEngine();
+                baseCopy.vertices = engine.baseVertices.map(v => v.clone());
+                baseCopy.quads = engine.baseQuads.map(q => [...q]);
+                const cageData = baseCopy.getWireframeData();
+                
+                const newCageGeo = new THREE.BufferGeometry();
+                newCageGeo.setAttribute('position', new THREE.BufferAttribute(cageData, 3));
+                cageMesh.geometry = newCageGeo;
+                cageMesh.visible = true;
+            } else {
+                cageMesh.visible = false;
+            }
+
+            document.getElementById('poly-display').innerText = engine.baseQuads.length;
+        }
+
+        // ==========================================
+        // 3. HANDLES
+        // ==========================================
+        const helperGroup = new THREE.Group();
+        scene.add(helperGroup);
+        let currentMode = 'vertex';
+
+        function rebuildHandles() {
+            helperGroup.clear();
+            selectedObjects = [];
+            transform.detach();
+
+            // Trabajar sobre geometría base
+            const verts = subsurfEnabled ? engine.baseVertices : engine.vertices;
+            const quads = subsurfEnabled ? engine.baseQuads : engine.quads;
+
+            if(verts.length > 3000 && currentMode !== 'face') return;
+
+            if(currentMode === 'vertex') {
+                const geo = new THREE.SphereGeometry(0.1);
+                const mat = new THREE.MeshBasicMaterial({ color: 0xe74c3c });
+                verts.forEach((v, i) => {
+                    if(!v) return;
+                    const h = new THREE.Mesh(geo, mat);
+                    h.position.copy(v);
+                    h.userData = { type: 'vertex', index: i };
+                    helperGroup.add(h);
+                });
+            } else if (currentMode === 'face') {
+                const geo = new THREE.PlaneGeometry(0.2, 0.2);
+                const mat = new THREE.MeshBasicMaterial({ color: 0x3498db, side: THREE.DoubleSide, depthTest: false });
+                
+                quads.forEach((q, i) => {
+                    if(q.some(idx => idx >= verts.length || !verts[idx])) return;
+                    
+                    const center = new THREE.Vector3();
+                    q.forEach(idx => center.add(verts[idx]));
+                    center.multiplyScalar(0.25);
+                    
+                    const v0 = verts[q[0]];
+                    const v1 = verts[q[1]];
+                    const v2 = verts[q[3]];
+                    const n = new THREE.Vector3().subVectors(v1, v0).cross(new THREE.Vector3().subVectors(v2, v0)).normalize();
+
+                    const h = new THREE.Mesh(geo, mat);
+                    h.position.copy(center);
+                    h.lookAt(center.clone().add(n));
+                    h.userData = { type: 'face', index: i };
+                    helperGroup.add(h);
+                });
+            } else if (currentMode === 'edge') {
+                const geo = new THREE.BoxGeometry(0.05, 0.05, 1);
+                const mat = new THREE.MeshBasicMaterial({ color: 0xf1c40f });
+                const processed = new Set();
+
+                quads.forEach(q => {
+                    for(let k=0; k<4; k++) {
+                        const i1 = q[k];
+                        const i2 = q[(k+1)%4];
+                        
+                        if(i1 >= verts.length || i2 >= verts.length) continue;
+                        if(!verts[i1] || !verts[i2]) continue;
+                        
+                        const key = i1<i2 ? `${i1}_${i2}` : `${i2}_${i1}`;
+                        if(processed.has(key)) continue;
+                        processed.add(key);
+
+                        const v1 = verts[i1];
+                        const v2 = verts[i2];
+                        const dist = v1.distanceTo(v2);
+                        
+                        const h = new THREE.Mesh(geo, mat);
+                        h.position.copy(v1).add(v2).multiplyScalar(0.5);
+                        h.lookAt(v2);
+                        h.scale.z = dist * 0.6;
+                        h.userData = { type: 'edge', v1: i1, v2: i2 };
+                        helperGroup.add(h);
+                    }
+                });
+            }
+        }
+
+        // ==========================================
+        // 4. CONTROLES
+        // ==========================================
+        const orbit = new OrbitControls(camera, renderer.domElement);
+        orbit.enableDamping = true;
+        
+        const transform = new TransformControls(camera, renderer.domElement);
+        transform.setSpace('local');
+        transform.addEventListener('dragging-changed', e => {
+            orbit.enabled = !e.value;
+            if(!e.value && isEditing) {
+                showEditModal();
+            }
+        });
+        scene.add(transform);
+
+        // Medidor de distancia
+        transform.addEventListener('mouseDown', () => {
+            initialPositions.clear();
+            selectedObjects.forEach(obj => {
+                initialPositions.set(obj, obj.position.clone());
+            });
+        });
+
+        transform.addEventListener('objectChange', () => {
+            const h = transform.object;
+            if(!h || !h.userData) return;
+            
+            const type = h.userData.type;
+            const verts = subsurfEnabled ? engine.baseVertices : engine.vertices;
+
+            if(type === 'vertex') {
+                if(isMultiSelect) {
+                    const delta = new THREE.Vector3().subVectors(h.position, initialPositions.get(h));
+                    selectedObjects.forEach(obj => {
+                        if(obj !== h && obj.userData.index < verts.length) {
+                            const original = initialPositions.get(obj);
+                            obj.position.copy(original).add(delta);
+                            verts[obj.userData.index].copy(obj.position);
+                        }
+                    });
+                }
+                if(h.userData.index < verts.length) {
+                    verts[h.userData.index].copy(h.position);
+                }
+            } else if (type === 'edge') {
+                const v1Idx = h.userData.v1;
+                const v2Idx = h.userData.v2;
+                
+                if(v1Idx >= verts.length || v2Idx >= verts.length) return;
+                
+                const v1 = verts[v1Idx];
+                const v2 = verts[v2Idx];
+                const dist = v1.distanceTo(v2);
+                const dir = new THREE.Vector3().subVectors(v2, v1).normalize();
+                v1.copy(h.position).addScaledVector(dir, -dist/2);
+                v2.copy(h.position).addScaledVector(dir, dist/2);
+            }
+
+            // Mostrar distancia
+            if(initialPositions.has(h)) {
+                const distance = h.position.distanceTo(initialPositions.get(h));
+                document.getElementById('distance-display').innerText = `Δ ${distance.toFixed(3)} units`;
+                document.getElementById('distance-display').classList.add('active');
+            }
+
+            updateScene();
+        });
+
+        transform.addEventListener('mouseUp', () => {
+            document.getElementById('distance-display').classList.remove('active');
+            if(currentMode !== 'vertex') rebuildHandles();
+        });
+
+        // ==========================================
+        // 5. UI EVENTS
+        // ==========================================
+        function setMode(m) {
+            currentMode = m;
+            document.querySelectorAll('.btn[data-mode]').forEach(b => b.classList.remove('active'));
+            const modeBtn = document.querySelector(`.btn[data-mode="${m}"]`);
+            if(modeBtn) modeBtn.classList.add('active');
+            
+            const btnExtrude = document.getElementById('btn-extrude');
+            const btnDelete = document.getElementById('btn-delete');
+            
+            if(m === 'face') {
+                btnExtrude.style.opacity = 1; 
+                btnDelete.style.opacity = 1;
+            } else {
+                btnExtrude.style.opacity = 0.3;
+                btnDelete.style.opacity = 0.3;
+            }
+
+            // Actualizar info
+            const modeNames = { vertex: 'Vértice', edge: 'Borde', face: 'Cara' };
+            const selectMode = isMultiSelect ? 'Múltiple' : 'Individual';
+            document.getElementById('mode-info').innerText = `Modo ${modeNames[m]} • Selección: ${selectMode}`;
+
+            rebuildHandles();
+            updateScene();
+        }
+
+        document.querySelectorAll('.btn[data-mode]').forEach(b => b.onclick = () => setMode(b.dataset.mode));
+
+        // Alternar modo de selección
+        document.getElementById('btn-select-mode').onclick = () => {
+            isMultiSelect = !isMultiSelect;
+            const btn = document.getElementById('btn-select-mode');
+            btn.classList.toggle('active', isMultiSelect);
+            
+            const selectMode = isMultiSelect ? 'Múltiple' : 'Individual';
+            const modeNames = { vertex: 'Vértice', edge: 'Borde', face: 'Cara' };
+            document.getElementById('mode-info').innerText = `Modo ${modeNames[currentMode]} • Selección: ${selectMode}`;
+        };
+
+        // Acciones
+        document.getElementById('btn-extrude').onclick = () => {
+            if(currentMode === 'face' && selectedObjects.length > 0) {
+                selectedObjects.forEach(obj => {
+                    if(obj.userData.type === 'face') {
+                        engine.extrudeFace(obj.userData.index);
+                    }
+                });
+                updateScene();
+                rebuildHandles();
+            }
+        };
+
+        document.getElementById('btn-subdivide').onclick = () => {
+            transform.detach();
+            engine.subdivide();
+            updateScene();
+            rebuildHandles();
+        };
+
+        document.getElementById('btn-delete').onclick = () => {
+            if(currentMode === 'face' && selectedObjects.length > 0) {
+                // Ordenar de mayor a menor para no alterar índices
+                const indices = selectedObjects.map(o => o.userData.index).sort((a,b) => b-a);
+                indices.forEach(idx => engine.deleteFace(idx));
+                transform.detach();
+                updateScene();
+                rebuildHandles();
+            }
+        };
+
+        // SubSurf Toggle
+        document.getElementById('toggle-subsurf').onclick = function() {
+            subsurfEnabled = !subsurfEnabled;
+            this.classList.toggle('active', subsurfEnabled);
+            document.getElementById('subsurf-info').innerText = `SubSurf: ${subsurfEnabled ? 'ON' : 'OFF'}`;
+            updateScene();
+            rebuildHandles();
+        };
+
+        // Modal de Edición
+        function showEditModal() {
+            document.getElementById('edit-modal').classList.add('active');
+            document.getElementById('camera-controls').classList.add('active');
+            isEditing = true;
+        }
+
+        function hideEditModal() {
+            document.getElementById('edit-modal').classList.remove('active');
+            document.getElementById('camera-controls').classList.remove('active');
+            isEditing = false;
+            cameraMode = null;
+            updateCameraButtons();
+            orbit.enabled = true;
+        }
+
+        document.getElementById('btn-continue-edit').onclick = hideEditModal;
+        document.getElementById('btn-finish-edit').onclick = () => {
+            hideEditModal();
+            transform.detach();
+            selectedObjects = [];
+        };
+
+        // Controles de cámara táctil
+        function updateCameraButtons() {
+            document.querySelectorAll('.camera-btn').forEach(b => b.classList.remove('active'));
+            orbit.enabled = false;
+            orbit.enableRotate = false;
+            orbit.enablePan = false;
+            orbit.enableZoom = false;
+
+            if(cameraMode === 'rotate') {
+                document.getElementById('btn-rotate').classList.add('active');
+                orbit.enabled = true;
+                orbit.enableRotate = true;
+            } else if(cameraMode === 'pan') {
+                document.getElementById('btn-pan').classList.add('active');
+                orbit.enabled = true;
+                orbit.enablePan = true;
+            } else if(cameraMode === 'zoom') {
+                document.getElementById('btn-zoom').classList.add('active');
+                orbit.enabled = true;
+                orbit.enableZoom = true;
+            }
+        }
+
+        document.getElementById('btn-rotate').onclick = () => {
+            cameraMode = cameraMode === 'rotate' ? null : 'rotate';
+            updateCameraButtons();
+        };
+
+        document.getElementById('btn-pan').onclick = () => {
+            cameraMode = cameraMode === 'pan' ? null : 'pan';
+            updateCameraButtons();
+        };
+
+        document.getElementById('btn-zoom').onclick = () => {
+            cameraMode = cameraMode === 'zoom' ? null : 'zoom';
+            updateCameraButtons();
+        };
+
+        // ==========================================
+        // 6. RAYCASTER & SELECCIÓN
+        // ==========================================
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        window.addEventListener('pointerdown', e => {
+            if(e.target.closest('.toolbar-container') || e.target.closest('.camera-btn') || e.target.closest('#edit-modal')) return;
+
+            const r = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((e.clientX - r.left)/r.width)*2-1;
+            mouse.y = -((e.clientY - r.top)/r.height)*2+1;
+            raycaster.setFromCamera(mouse, camera);
+
+            const hits = raycaster.intersectObjects(helperGroup.children);
+            if(hits.length > 0) {
+                const hit = hits[0].object;
+
+                if(isMultiSelect) {
+                    if(selectedObjects.includes(hit)) {
+                        // Deseleccionar
+                        selectedObjects = selectedObjects.filter(o => o !== hit);
+                        resetHandleColor(hit);
+                    } else {
+                        // Agregar a selección
+                        selectedObjects.push(hit);
+                        hit.material.color.setHex(0xffffff);
+                    }
+
+                    // Attach transform al primero
+                    if(selectedObjects.length > 0) {
+                        transform.attach(selectedObjects[0]);
+                        initialPositions.clear();
+                        selectedObjects.forEach(obj => {
+                            initialPositions.set(obj, obj.position.clone());
+                        });
+                    } else {
+                        transform.detach();
+                    }
+                } else {
+                    // Selección individual
+                    selectedObjects = [hit];
+                    transform.attach(hit);
+                    
+                    helperGroup.children.forEach(c => resetHandleColor(c));
+                    hit.material.color.setHex(0xffffff);
+                }
+
+                if(!isEditing && selectedObjects.length > 0) {
+                    showEditModal();
+                }
+            } else if (!transform.dragging && !isEditing) {
+                transform.detach();
+                selectedObjects = [];
+            }
+        });
+
+        function resetHandleColor(handle) {
+            let col = 0xffffff;
+            if(handle.userData.type === 'vertex') col = 0xe74c3c;
+            if(handle.userData.type === 'edge') col = 0xf1c40f;
+            if(handle.userData.type === 'face') col = 0x3498db;
+            handle.material.color.setHex(col);
+        }
+
+        function showWarning() {
+            document.getElementById('warning').style.display = 'block';
+            setTimeout(() => document.getElementById('warning').style.display = 'none', 2000);
+        }
+
+        // ==========================================
+        // 7. INIT & ANIMATE
+        // ==========================================
+        updateScene();
+        rebuildHandles();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            orbit.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        window.onresize = () => {
+            camera.aspect = window.innerWidth/window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        };
+    </script>
+</body>
+</html>
