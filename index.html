@@ -3,54 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>True Quad Editor</title>
+    <title>Blender Lite - Ultimate</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #222; font-family: 'Segoe UI', sans-serif; touch-action: none; }
         
-        /* UI FLOTANTE */
-        #toolbar {
-            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
-            display: flex; gap: 15px; background: rgba(30,30,30,0.9); padding: 15px 25px;
-            border-radius: 16px; border: 1px solid #444; backdrop-filter: blur(10px);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        /* --- UI PRINCIPAL --- */
+        .toolbar {
+            position: absolute; display: flex; gap: 8px; background: rgba(30,30,30,0.95);
+            padding: 8px; border-radius: 12px; border: 1px solid #444; backdrop-filter: blur(10px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5); pointer-events: auto;
         }
 
-        .tool-btn {
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            width: 60px; height: 60px; background: #3a3a3a; border: none; border-radius: 12px;
-            color: #ccc; cursor: pointer; transition: 0.2s;
+        #top-bar { top: 15px; left: 50%; transform: translateX(-50%); z-index: 10; }
+        #bottom-bar { bottom: 30px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 400px; justify-content: center; }
+
+        .btn {
+            width: 45px; height: 45px; border: none; border-radius: 8px; background: #3a3a3a;
+            color: #aaa; cursor: pointer; display: flex; align-items: center; justify-content: center;
+            transition: 0.2s; position: relative;
         }
-        .tool-btn:active { transform: scale(0.95); background: #222; }
+        .btn svg { width: 24px; height: 24px; fill: currentColor; }
+        .btn:active { transform: scale(0.95); }
+        .btn.active { background: #3498db; color: white; box-shadow: 0 0 10px rgba(52, 152, 219, 0.4); }
+
+        /* Estilos específicos por modo */
+        .btn[data-mode="vertex"].active { background: #e74c3c; }
+        .btn[data-mode="edge"].active { background: #f1c40f; color: #111; }
         
-        .tool-btn svg { width: 28px; height: 28px; margin-bottom: 4px; fill: currentColor; }
-        .label { font-size: 10px; font-weight: bold; text-transform: uppercase; }
-
+        /* Botones de Acción (Texto) */
+        .action-btn { flex: 1; height: 50px; font-weight: bold; font-size: 11px; text-transform: uppercase; flex-direction: column; gap: 4px; }
         .btn-extrude { color: #f1c40f; }
-        .btn-subdiv { color: #3498db; }
-        .btn-reset { color: #e74c3c; }
+        .btn-subdiv { color: #2ecc71; }
+        .btn-delete { color: #e74c3c; }
 
-        #info {
-            position: absolute; top: 20px; width: 100%; text-align: center;
-            color: #666; font-size: 12px; pointer-events: none;
+        #info-overlay {
+            position: absolute; top: 70px; width: 100%; text-align: center;
+            color: #666; font-size: 11px; pointer-events: none;
         }
     </style>
 </head>
 <body>
 
-    <div id="info">Motor de Topología Quad v1.0 • <span id="poly-count">6</span> Quads</div>
+    <div id="info-overlay">Motor Quad v2.0 • Selecciona y Mueve</div>
 
-    <div id="toolbar">
-        <button class="tool-btn btn-extrude" id="btn-extrude">
-            <svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z M8 8h8v8H8z"/></svg>
-            <span class="label">Extruir</span>
+    <div id="top-bar" class="toolbar">
+        <button class="btn active" data-mode="vertex" title="Vértices">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/></svg>
         </button>
-        <button class="tool-btn btn-subdiv" id="btn-subdivide">
-            <svg viewBox="0 0 24 24"><path d="M3 3h18v18H3z M12 3v18 M3 12h18"/></svg>
-            <span class="label">Dividir</span>
+        <button class="btn" data-mode="edge" title="Bordes">
+            <svg viewBox="0 0 24 24"><path d="M4 20L20 4" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg>
         </button>
-        <button class="tool-btn btn-reset" id="btn-reset">
-            <svg viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
-            <span class="label">Reset</span>
+        <button class="btn" data-mode="face" title="Caras">
+            <svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>
+        </button>
+    </div>
+
+    <div id="bottom-bar" class="toolbar">
+        <button class="btn action-btn btn-extrude" id="btn-extrude">
+            <svg viewBox="0 0 24 24" style="width:20px"><path d="M4 4h16v16H4z M8 8h8v8H8z"/></svg> Extruir
+        </button>
+        <button class="btn action-btn btn-subdiv" id="btn-subdivide">
+            <svg viewBox="0 0 24 24" style="width:20px"><path d="M3 3h18v18H3z M12 3v18 M3 12h18"/></svg> Dividir
+        </button>
+        <button class="btn action-btn btn-delete" id="btn-delete">
+            <svg viewBox="0 0 24 24" style="width:20px"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg> Borrar
         </button>
     </div>
 
@@ -68,171 +84,136 @@
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { TransformControls } from 'three/addons/controls/TransformControls.js';
 
-        // --- 1. CLASE MAESTRA DE GEOMETRÍA QUAD ---
-        // Esta clase maneja la lógica pura, separada de Three.js
-        class QuadMesh {
+        // ==========================================
+        // 1. MOTOR DE TOPOLOGÍA (QUAD ENGINE)
+        // ==========================================
+        class QuadEngine {
             constructor() {
                 this.vertices = []; // Array de Vector3
-                this.quads = [];    // Array de [v1, v2, v3, v4] indices
+                this.quads = [];    // Array de [i1, i2, i3, i4]
             }
 
-            addVertex(x, y, z) {
-                this.vertices.push(new THREE.Vector3(x, y, z));
-                return this.vertices.length - 1;
-            }
-
-            addQuad(a, b, c, d) {
-                this.quads.push([a, b, c, d]);
-            }
-
-            // Generar el cubo inicial
+            // Inicializar Cubo Base
             initCube() {
                 this.vertices = []; this.quads = [];
-                // 8 Vértices del cubo
-                const s = 1;
-                const v = [
-                    [-s,-s, s], [ s,-s, s], [ s, s, s], [-s, s, s], // Front (0,1,2,3)
-                    [-s,-s,-s], [ s,-s,-s], [ s, s,-s], [-s, s,-s]  // Back (4,5,6,7)
-                ];
-                v.forEach(p => this.addVertex(p[0], p[1], p[2]));
-
-                // 6 Caras (Orden CCW estricto)
-                this.addQuad(0, 1, 2, 3); // Front
-                this.addQuad(5, 4, 7, 6); // Back
-                this.addQuad(1, 5, 6, 2); // Right
-                this.addQuad(4, 0, 3, 7); // Left
-                this.addQuad(3, 2, 6, 7); // Top
-                this.addQuad(4, 5, 1, 0); // Bottom
+                const s = 1; 
+                // 8 vertices
+                const v = [[-s,-s,s],[s,-s,s],[s,s,s],[-s,s,s],[-s,-s,-s],[s,-s,-s],[s,s,-s],[-s,s,-s]];
+                v.forEach(p => this.vertices.push(new THREE.Vector3(...p)));
+                
+                // 6 Quads (Orden CCW)
+                this.addQuad(0,1,2,3); // Front
+                this.addQuad(5,4,7,6); // Back
+                this.addQuad(1,5,6,2); // Right
+                this.addQuad(4,0,3,7); // Left
+                this.addQuad(3,2,6,7); // Top
+                this.addQuad(4,5,1,0); // Bottom
             }
 
-            // --- OPERACIÓN: SUBDIVISIÓN (Catmull-Clark Lite) ---
-            subdivide() {
-                const newQuads = [];
-                // Cache de bordes para compartir vértices: clave "min_max" -> indiceVertice
-                const edgeCache = new Map();
+            addQuad(a,b,c,d) { this.quads.push([a,b,c,d]); }
 
-                // Función auxiliar para obtener/crear punto medio de un borde
-                const getEdgeMidpoint = (i1, i2) => {
-                    const key = i1 < i2 ? `${i1}_${i2}` : `${i2}_${i1}`;
-                    if(edgeCache.has(key)) return edgeCache.get(key);
-
-                    const v1 = this.vertices[i1];
-                    const v2 = this.vertices[i2];
-                    const mid = new THREE.Vector3().addVectors(v1, v2).multiplyScalar(0.5);
-                    const newIdx = this.addVertex(mid.x, mid.y, mid.z);
-                    edgeCache.set(key, newIdx);
-                    return newIdx;
-                };
-
-                // Iterar sobre cada Quad actual y romperlo en 4
+            // Generar Mesh Visual (Three.js)
+            getRenderData() {
+                const positions = [];
+                // Convertir Quads a Triángulos para GPU
                 for(let q of this.quads) {
-                    const [a, b, c, d] = q;
-                    
-                    // 1. Calcular Centroide de la cara
-                    const centerPos = new THREE.Vector3()
-                        .add(this.vertices[a]).add(this.vertices[b])
-                        .add(this.vertices[c]).add(this.vertices[d]).multiplyScalar(0.25);
-                    const centerIdx = this.addVertex(centerPos.x, centerPos.y, centerPos.z);
-
-                    // 2. Obtener puntos medios de los 4 bordes
-                    const mab = getEdgeMidpoint(a, b);
-                    const mbc = getEdgeMidpoint(b, c);
-                    const mcd = getEdgeMidpoint(c, d);
-                    const mda = getEdgeMidpoint(d, a);
-
-                    // 3. Crear 4 nuevos quads conectando esquinas al centro
-                    newQuads.push([a, mab, centerIdx, mda]); // Quad inferior-izq (relativo)
-                    newQuads.push([mab, b, mbc, centerIdx]); // Quad inferior-der
-                    newQuads.push([centerIdx, mbc, c, mcd]); // Quad superior-der
-                    newQuads.push([mda, centerIdx, mcd, d]); // Quad superior-izq
+                    const v = q.map(i => this.vertices[i]);
+                    // Tri 1
+                    positions.push(v[0].x, v[0].y, v[0].z, v[1].x, v[1].y, v[1].z, v[2].x, v[2].y, v[2].z);
+                    // Tri 2
+                    positions.push(v[0].x, v[0].y, v[0].z, v[2].x, v[2].y, v[2].z, v[3].x, v[3].y, v[3].z);
                 }
-
-                this.quads = newQuads; // Reemplazar topología
+                return new Float32Array(positions);
             }
 
-            // --- OPERACIÓN: EXTRUSIÓN ---
-            extrudeQuad(quadIndex) {
-                const q = this.quads[quadIndex]; // Indices [a,b,c,d]
-                
-                // 1. Calcular Normal promedio
-                const va = this.vertices[q[0]];
-                const vb = this.vertices[q[1]];
-                const vc = this.vertices[q[2]];
-                const v1 = new THREE.Vector3().subVectors(vb, va);
-                const v2 = new THREE.Vector3().subVectors(vc, vb);
-                const normal = new THREE.Vector3().crossVectors(v1, v2).normalize();
-
-                // 2. Crear 4 nuevos vértices desplazados (la "tapa")
-                const dist = 0.5; // Distancia extrusión
-                const newIndices = [];
-                for(let idx of q) {
-                    const v = this.vertices[idx];
-                    const nv = v.clone().add(normal.clone().multiplyScalar(dist));
-                    newIndices.push(this.addVertex(nv.x, nv.y, nv.z));
-                }
-
-                // 3. Crear 4 quads laterales (puentes)
-                // Lado 1: q0->q1 sube a n1->n0
-                this.addQuad(q[0], q[1], newIndices[1], newIndices[0]);
-                this.addQuad(q[1], q[2], newIndices[2], newIndices[1]);
-                this.addQuad(q[2], q[3], newIndices[3], newIndices[2]);
-                this.addQuad(q[3], q[0], newIndices[0], newIndices[3]);
-
-                // 4. ACTUALIZAR el quad original para que sea la "tapa" superior
-                // Esto es clave: no borramos el quad viejo, lo "movemos" topológicamente a la cima
-                this.quads[quadIndex] = newIndices; 
-                
-                return quadIndex; // Devolver índice para mantener selección
-            }
-
-            // --- CONVERSIÓN A THREE.JS ---
-            toBufferGeometry() {
-                const geo = new THREE.BufferGeometry();
-                const posArr = [];
-                const idxArr = []; // Para Wireframe limpio usando edgesGeometry despues no sirve tanto
-                // Mejor: Sopa de triángulos no indexada para flat shading correcto
-                
-                // Convertir cada Quad en 2 Triángulos
-                for(let q of this.quads) {
-                    const v0 = this.vertices[q[0]];
-                    const v1 = this.vertices[q[1]];
-                    const v2 = this.vertices[q[2]];
-                    const v3 = this.vertices[q[3]];
-
-                    // Tri 1 (0,1,2)
-                    posArr.push(v0.x, v0.y, v0.z);
-                    posArr.push(v1.x, v1.y, v1.z);
-                    posArr.push(v2.x, v2.y, v2.z);
-
-                    // Tri 2 (0,2,3)
-                    posArr.push(v0.x, v0.y, v0.z);
-                    posArr.push(v2.x, v2.y, v2.z);
-                    posArr.push(v3.x, v3.y, v3.z);
-                }
-
-                geo.setAttribute('position', new THREE.Float32BufferAttribute(posArr, 3));
-                geo.computeVertexNormals();
-                return geo;
-            }
-
-            // Generar líneas solo para los bordes de los quads (Wireframe limpio)
-            getWireframeGeometry() {
+            // Wireframe Limpio (Solo bordes de quads)
+            getWireframeData() {
                 const positions = [];
                 for(let q of this.quads) {
                     const v = q.map(i => this.vertices[i]);
-                    // 4 líneas del quad
                     for(let i=0; i<4; i++) {
                         positions.push(v[i].x, v[i].y, v[i].z);
                         positions.push(v[(i+1)%4].x, v[(i+1)%4].y, v[(i+1)%4].z);
                     }
                 }
-                const geo = new THREE.BufferGeometry();
-                geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-                return geo;
+                return new Float32Array(positions);
+            }
+
+            // --- OPERACIONES ---
+            
+            subdivide() {
+                const newQuads = [];
+                const edgeCache = new Map(); // "min_max" -> index
+
+                const getMid = (i1, i2) => {
+                    const key = i1<i2 ? `${i1}_${i2}` : `${i2}_${i1}`;
+                    if(edgeCache.has(key)) return edgeCache.get(key);
+                    const mid = new THREE.Vector3().addVectors(this.vertices[i1], this.vertices[i2]).multiplyScalar(0.5);
+                    this.vertices.push(mid);
+                    const idx = this.vertices.length-1;
+                    edgeCache.set(key, idx);
+                    return idx;
+                };
+
+                for(let q of this.quads) {
+                    // Centro
+                    const cPos = new THREE.Vector3().add(this.vertices[q[0]]).add(this.vertices[q[1]]).add(this.vertices[q[2]]).add(this.vertices[q[3]]).multiplyScalar(0.25);
+                    this.vertices.push(cPos);
+                    const cIdx = this.vertices.length-1;
+                    
+                    // Mids
+                    const m01 = getMid(q[0], q[1]);
+                    const m12 = getMid(q[1], q[2]);
+                    const m23 = getMid(q[2], q[3]);
+                    const m30 = getMid(q[3], q[0]);
+
+                    // 4 Hijos
+                    newQuads.push([q[0], m01, cIdx, m30]);
+                    newQuads.push([m01, q[1], m12, cIdx]);
+                    newQuads.push([cIdx, m12, q[2], m23]);
+                    newQuads.push([m30, cIdx, m23, q[3]]);
+                }
+                this.quads = newQuads;
+            }
+
+            extrudeFace(quadIndex) {
+                if(quadIndex < 0 || quadIndex >= this.quads.length) return;
+                const q = this.quads[quadIndex];
+                
+                // Calcular normal
+                const v = q.map(i => this.vertices[i]);
+                const n = new THREE.Vector3().subVectors(v[1], v[0]).cross(new THREE.Vector3().subVectors(v[3], v[0])).normalize();
+                
+                // Crear 4 nuevos vértices extruidos
+                const baseIndices = [...q];
+                const topIndices = [];
+                const dist = 0.5;
+
+                for(let i=0; i<4; i++) {
+                    const newPos = v[i].clone().add(n.clone().multiplyScalar(dist));
+                    this.vertices.push(newPos);
+                    topIndices.push(this.vertices.length-1);
+                }
+
+                // Crear 4 caras laterales
+                for(let i=0; i<4; i++) {
+                    const next = (i+1)%4;
+                    this.addQuad(baseIndices[i], baseIndices[next], topIndices[next], topIndices[i]);
+                }
+
+                // Actualizar la cara original para que sea la "tapa" (Top)
+                this.quads[quadIndex] = topIndices;
+                return quadIndex; // Retornar indice para mantener selección
+            }
+
+            deleteFace(index) {
+                if(index > -1) this.quads.splice(index, 1);
             }
         }
 
-        // --- 2. CONFIGURACIÓN VISUAL ---
+        // ==========================================
+        // 2. SETUP ESCENA
+        // ==========================================
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x222222);
         scene.add(new THREE.GridHelper(20, 20, 0x444444, 0x333333));
@@ -245,157 +226,264 @@
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         document.body.appendChild(renderer.domElement);
 
-        const light = new THREE.DirectionalLight(0xffffff, 1.5);
+        const light = new THREE.DirectionalLight(0xffffff, 1.2);
         light.position.set(5, 10, 7);
         scene.add(light, new THREE.AmbientLight(0xffffff, 0.5));
 
-        // --- 3. INSTANCIAR MOTOR ---
-        const qMesh = new QuadMesh();
-        qMesh.initCube();
+        // --- OBJETOS ---
+        const engine = new QuadEngine();
+        engine.initCube();
 
-        // Malla Visual (Render)
-        const material = new THREE.MeshStandardMaterial({ 
-            color: 0x7f8c8d, roughness: 0.5, metalness: 0.1,
-            polygonOffset: true, polygonOffsetFactor: 1
+        // Malla Visual (Triángulos renderizados)
+        const mainGeo = new THREE.BufferGeometry();
+        const mainMat = new THREE.MeshStandardMaterial({ 
+            color: 0x7f8c8d, roughness: 0.5, metalness: 0.1, 
+            polygonOffset: true, polygonOffsetFactor: 1 
         });
-        let mainMesh = new THREE.Mesh(new THREE.BufferGeometry(), material);
-        scene.add(mainMesh);
+        const mesh = new THREE.Mesh(mainGeo, mainMat);
+        scene.add(mesh);
 
-        // Wireframe Visual
-        let wireMesh = new THREE.LineSegments(
-            new THREE.BufferGeometry(), 
-            new THREE.LineBasicMaterial({ color: 0x111111, opacity: 0.5, transparent: true })
-        );
-        scene.add(wireMesh); // Añadimos a escena para que no dependa de la malla
+        // Wireframe (Líneas Quad reales)
+        const wireGeo = new THREE.BufferGeometry();
+        const wireMat = new THREE.LineBasicMaterial({ color: 0x111111, opacity: 0.4, transparent: true });
+        const wireMesh = new THREE.LineSegments(wireGeo, wireMat);
+        scene.add(wireMesh);
 
-        // --- 4. GESTOR DE SELECCIÓN (HANDLES) ---
+        // --- HANDLES (Controles Visuales) ---
         const helperGroup = new THREE.Group();
         scene.add(helperGroup);
-        let selectedQuadIndex = -1;
 
-        function updateScene() {
-            // 1. Actualizar geometría visual
-            mainMesh.geometry.dispose();
-            mainMesh.geometry = qMesh.toBufferGeometry();
+        // ==========================================
+        // 3. ACTUALIZACIÓN VISUAL
+        // ==========================================
+        function updateGeometry() {
+            // Actualizar Render
+            const renderData = engine.getRenderData();
+            mainGeo.setAttribute('position', new THREE.BufferAttribute(renderData, 3));
+            mainGeo.computeVertexNormals();
+            mainGeo.attributes.position.needsUpdate = true;
 
-            // 2. Actualizar Wireframe (Lineas Quad Reales)
-            wireMesh.geometry.dispose();
-            wireMesh.geometry = qMesh.getWireframeGeometry();
-
-            // 3. Regenerar Gizmos de Caras
-            helperGroup.clear();
-            
-            const handleGeo = new THREE.PlaneGeometry(0.3, 0.3);
-            const handleMat = new THREE.MeshBasicMaterial({ color: 0x3498db, side: THREE.DoubleSide, depthTest: false, opacity: 0.6, transparent: true });
-            const selectedMat = new THREE.MeshBasicMaterial({ color: 0xf1c40f, side: THREE.DoubleSide, depthTest: false });
-
-            qMesh.quads.forEach((q, idx) => {
-                // Calcular centroide
-                const center = new THREE.Vector3();
-                q.forEach(vi => center.add(qMesh.vertices[vi]));
-                center.multiplyScalar(0.25);
-
-                // Calcular orientación (Normal)
-                const va = qMesh.vertices[q[0]];
-                const vb = qMesh.vertices[q[1]];
-                const vc = qMesh.vertices[q[2]];
-                const norm = new THREE.Vector3().subVectors(vb, va).cross(new THREE.Vector3().subVectors(vc, vb)).normalize();
-
-                const h = new THREE.Mesh(handleGeo, idx === selectedQuadIndex ? selectedMat : handleMat);
-                h.position.copy(center);
-                h.lookAt(center.clone().add(norm));
-                h.userData = { id: idx, type: 'face' };
-                
-                helperGroup.add(h);
-            });
-
-            // Actualizar UI
-            document.getElementById('poly-count').innerText = qMesh.quads.length;
+            // Actualizar Wireframe
+            const wireData = engine.getWireframeData();
+            wireGeo.setAttribute('position', new THREE.BufferAttribute(wireData, 3));
+            wireGeo.attributes.position.needsUpdate = true;
         }
 
-        updateScene();
+        let currentMode = 'vertex';
+        let selection = null; // { object: Handle, id: ID_Handle }
 
-        // --- 5. CONTROLADORES ---
+        function rebuildHandles() {
+            helperGroup.clear();
+            selection = null;
+            transform.detach();
+
+            if(currentMode === 'vertex') {
+                const geo = new THREE.SphereGeometry(0.12);
+                const mat = new THREE.MeshBasicMaterial({ color: 0xe74c3c }); // Rojo
+                
+                engine.vertices.forEach((v, i) => {
+                    const h = new THREE.Mesh(geo, mat);
+                    h.position.copy(v);
+                    h.userData = { type: 'vertex', index: i };
+                    helperGroup.add(h);
+                });
+            } 
+            else if(currentMode === 'edge') {
+                const geo = new THREE.BoxGeometry(0.06, 0.06, 1);
+                const mat = new THREE.MeshBasicMaterial({ color: 0xf1c40f }); // Amarillo
+                
+                // Recorrer quads y crear bordes únicos
+                const edgeSet = new Set();
+                
+                engine.quads.forEach(q => {
+                    for(let i=0; i<4; i++) {
+                        const i1 = q[i];
+                        const i2 = q[(i+1)%4];
+                        const key = i1<i2 ? `${i1}_${i2}` : `${i2}_${i1}`;
+                        
+                        if(edgeSet.has(key)) continue;
+                        edgeSet.add(key);
+
+                        const v1 = engine.vertices[i1];
+                        const v2 = engine.vertices[i2];
+                        const dist = v1.distanceTo(v2);
+                        
+                        const h = new THREE.Mesh(geo, mat);
+                        h.position.copy(v1).add(v2).multiplyScalar(0.5);
+                        h.lookAt(v2);
+                        h.scale.z = dist * 0.7; // Visual gap
+                        h.userData = { type: 'edge', v1: i1, v2: i2 };
+                        helperGroup.add(h);
+                    }
+                });
+            }
+            else if(currentMode === 'face') {
+                const geo = new THREE.PlaneGeometry(0.3, 0.3);
+                const mat = new THREE.MeshBasicMaterial({ color: 0x3498db, side: THREE.DoubleSide, transparent:true, opacity:0.6 });
+                const selMat = new THREE.MeshBasicMaterial({ color: 0xf1c40f, side: THREE.DoubleSide });
+
+                engine.quads.forEach((q, i) => {
+                    const center = new THREE.Vector3().add(engine.vertices[q[0]]).add(engine.vertices[q[1]]).add(engine.vertices[q[2]]).add(engine.vertices[q[3]]).multiplyScalar(0.25);
+                    
+                    // Normal aprox
+                    const v0 = engine.vertices[q[0]];
+                    const v1 = engine.vertices[q[1]];
+                    const v2 = engine.vertices[q[3]]; // Usar v3 para normal correcta
+                    const n = new THREE.Vector3().subVectors(v1, v0).cross(new THREE.Vector3().subVectors(v2, v0)).normalize();
+
+                    const h = new THREE.Mesh(geo, mat);
+                    h.position.copy(center);
+                    h.lookAt(center.clone().add(n));
+                    h.userData = { type: 'face', index: i };
+                    helperGroup.add(h);
+                });
+            }
+        }
+
+        // ==========================================
+        // 4. INTERACCIÓN Y TRANSFORMACIÓN
+        // ==========================================
         const orbit = new OrbitControls(camera, renderer.domElement);
         orbit.enableDamping = true;
-
+        
         const transform = new TransformControls(camera, renderer.domElement);
         transform.setSpace('local');
         transform.addEventListener('dragging-changed', e => orbit.enabled = !e.value);
         scene.add(transform);
 
-        // Movimiento de vértices al mover la cara
+        // LÓGICA DE MOVIMIENTO (Sincronizar Gizmo -> Motor Quad)
         transform.addEventListener('objectChange', () => {
-            if(selectedQuadIndex === -1) return;
-            const handle = transform.object;
-            
-            // Lógica simple: Mover los 4 vértices del quad seleccionado
-            // Delta = PosActual - PosAnterior? No tenemos anterior.
-            // Solución: Recalcular posiciones basadas en offset del centro.
-            // Para evitar colapso, regeneramos la geometría visual solo al soltar o usamos delta.
-            
-            // Para este demo LITE: Solo permitimos selección para Extruir.
-            // Mover caras individuales en una malla conectada sin deformar vecinos es complejo.
-            // DESACTIVAMOS MOVIMIENTO DIRECTO para priorizar Extrusión limpia.
+            const h = transform.object;
+            const type = h.userData.type;
+
+            if(type === 'vertex') {
+                // Actualizar 1 vértice
+                const idx = h.userData.index;
+                engine.vertices[idx].copy(h.position);
+            } 
+            else if(type === 'edge') {
+                // Actualizar 2 vértices (Borde)
+                const v1 = engine.vertices[h.userData.v1];
+                const v2 = engine.vertices[h.userData.v2];
+                // Calcular nueva posición relativa
+                // Truco: Mover v1 y v2 basándonos en el offset del handle
+                // (Para simplificar demo: Recalculamos desde el centro del handle)
+                const dist = v1.distanceTo(v2);
+                const dir = new THREE.Vector3().subVectors(v2, v1).normalize();
+                
+                // Reconstruir posiciones basadas en el handle (centro)
+                v1.copy(h.position).addScaledVector(dir, -dist/2);
+                v2.copy(h.position).addScaledVector(dir, dist/2);
+            }
+            else if(type === 'face') {
+                // Actualizar 4 vértices (Cara)
+                // Esto es complejo sin guardar offsets.
+                // Implementación SIMPLE: Solo permitir mover caras para extruir en este demo,
+                // O usar el delta de posición si estuviera disponible.
+                
+                // Hack: Para mover una cara, movemos sus 4 vértices igual.
+                // Necesitamos la posición anterior... que no tenemos fácil.
+                // SOLUCIÓN: Regeneramos handles al soltar. Mientras arrastras, 
+                // la geometría visual puede no actualizarse perfectamente suave en modo cara
+                // a menos que calculemos deltas.
+                
+                // Para esta versión robusta: Bloqueamos movimiento directo de cara (usar vértices/bordes para afinar)
+                // La cara es principalmente para EXTRUIR.
+            }
+
+            updateGeometry();
+            // No regeneramos handles durante el drag para rendimiento
         });
 
-        // --- 6. EVENTOS DE HERRAMIENTAS ---
+        // Al soltar, regenerar todo para asegurar consistencia
+        transform.addEventListener('mouseUp', () => {
+            if(currentMode !== 'vertex') rebuildHandles(); // Recalcular centros de bordes/caras
+        });
+
+        // ==========================================
+        // 5. INPUTS
+        // ==========================================
         
-        // EXTRUIR
-        document.getElementById('btn-extrude').onclick = () => {
-            if(selectedQuadIndex === -1) { alert("Selecciona una cara"); return; }
-            
-            qMesh.extrudeQuad(selectedQuadIndex);
-            updateScene();
-            
-            // Recolocar gizmo en la nueva cara (que tiene el mismo índice)
-            // Necesitamos buscar el handle nuevo visualmente
-            // Hack rápido: seleccionar el handle por índice
-            const newHandle = helperGroup.children.find(c => c.userData.id === selectedQuadIndex);
-            if(newHandle) transform.attach(newHandle);
-        };
-
-        // SUBDIVIDIR
-        document.getElementById('btn-subdivide').onclick = () => {
-            transform.detach();
-            selectedQuadIndex = -1;
-            qMesh.subdivide();
-            updateScene();
-        };
-
-        // RESET
-        document.getElementById('btn-reset').onclick = () => {
-            transform.detach();
-            selectedQuadIndex = -1;
-            qMesh.initCube();
-            updateScene();
-        };
-
-        // RAYCASTER
+        // Raycaster
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 
         window.addEventListener('pointerdown', e => {
-            if(e.target.closest('button')) return;
+            if(e.target.closest('.toolbar')) return;
 
-            const r = renderer.domElement.getBoundingClientRect();
-            mouse.x = ((e.clientX - r.left)/r.width)*2-1;
-            mouse.y = -((e.clientY - r.top)/r.height)*2+1;
-            ray.setFromCamera(mouse, camera);
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 
-            const hits = ray.intersectObjects(helperGroup.children);
+            raycaster.setFromCamera(mouse, camera);
+            const hits = raycaster.intersectObjects(helperGroup.children);
+
             if(hits.length > 0) {
                 const h = hits[0].object;
-                selectedQuadIndex = h.userData.id;
+                selection = h;
                 transform.attach(h);
-                updateScene(); // Para actualizar colores
+                
+                // Feedback visual de selección
+                helperGroup.children.forEach(c => c.material.color.setHex( 
+                    c.userData.type === 'vertex' ? 0xe74c3c : 
+                    c.userData.type === 'edge' ? 0xf1c40f : 0x3498db 
+                ));
+                h.material.color.setHex(0xffffff); // Blanco seleccionado
             } else if (!transform.dragging) {
                 transform.detach();
-                selectedQuadIndex = -1;
-                updateScene();
+                selection = null;
             }
         });
 
+        // UI Buttons
+        function setMode(m) {
+            currentMode = m;
+            document.querySelectorAll('#top-bar .btn').forEach(b => b.classList.remove('active'));
+            document.querySelector(`.btn[data-mode="${m}"]`).classList.add('active');
+            
+            // Toggle Extrude button availability
+            document.getElementById('btn-extrude').style.opacity = (m === 'face' ? 1 : 0.3);
+            
+            rebuildHandles();
+            updateGeometry();
+        }
+
+        document.querySelectorAll('.btn[data-mode]').forEach(b => {
+            b.onclick = () => setMode(b.dataset.mode);
+        });
+
+        // Herramientas
+        document.getElementById('btn-extrude').onclick = () => {
+            if(currentMode === 'face' && selection) {
+                engine.extrudeFace(selection.userData.index);
+                updateGeometry();
+                rebuildHandles();
+            } else {
+                alert("Selecciona una CARA para extruir");
+            }
+        };
+
+        document.getElementById('btn-subdivide').onclick = () => {
+            transform.detach();
+            engine.subdivide();
+            updateGeometry();
+            rebuildHandles();
+        };
+
+        document.getElementById('btn-delete').onclick = () => {
+            if(currentMode === 'face' && selection) {
+                engine.deleteFace(selection.userData.index);
+                transform.detach();
+                updateGeometry();
+                rebuildHandles();
+            }
+        };
+
+        // Init
+        updateGeometry();
+        rebuildHandles();
+
+        // Loop
         function animate() {
             requestAnimationFrame(animate);
             orbit.update();
@@ -403,12 +491,11 @@
         }
         animate();
 
-        window.addEventListener('resize', () => {
+        window.onresize = () => {
             camera.aspect = window.innerWidth/window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
-        });
-
+        };
     </script>
 </body>
 </html>
