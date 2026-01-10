@@ -1,0 +1,1933 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Blender Lite Pro - Complete Professional Edition</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { 
+            margin: 0; overflow: hidden; background-color: #1a1a1a; 
+            font-family: 'Segoe UI', sans-serif; touch-action: none; 
+        }
+        
+        /* UI SUPERIOR */
+        #top-bar {
+            position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
+            display: flex; gap: 10px; background: rgba(30,30,30,0.95); padding: 10px 16px;
+            border-radius: 12px; border: 1px solid #444; backdrop-filter: blur(10px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.6); z-index: 100;
+            flex-wrap: wrap; max-width: 95vw; align-items: center;
+        }
+
+        .btn {
+            width: 48px; height: 48px; border: none; border-radius: 10px; background: #3a3a3a;
+            color: #aaa; cursor: pointer; display: flex; align-items: center; justify-content: center;
+            transition: 0.2s; position: relative; font-size: 10px; font-weight: bold;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        }
+        .btn:active { transform: scale(0.95); }
+        .btn.active { background: #3498db; color: white; box-shadow: 0 0 16px rgba(52, 152, 219, 0.6); }
+        
+        .btn svg { width: 26px; height: 26px; fill: currentColor; }
+
+        /* Colores por modo */
+        .btn[data-mode="vertex"].active { background: #e74c3c; box-shadow: 0 0 16px rgba(231, 76, 60, 0.6); }
+        .btn[data-mode="edge"].active { background: #f1c40f; color: #111; box-shadow: 0 0 16px rgba(241, 196, 15, 0.6); }
+        .btn[data-mode="face"].active { background: #3498db; box-shadow: 0 0 16px rgba(52, 152, 219, 0.6); }
+        
+        /* Botones de modo principal */
+        .mode-btn {
+            min-width: 100px; height: 56px; padding: 0 20px;
+            font-size: 13px; font-weight: bold; text-transform: uppercase;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 4px;
+        }
+        
+        #btn-object-mode { background: #9b59b6; color: white; }
+        #btn-object-mode.active { background: #8e44ad; box-shadow: 0 0 20px rgba(155, 89, 182, 0.8); }
+        
+        #btn-subobject-mode { background: #3498db; color: white; }
+        #btn-subobject-mode.active { background: #2980b9; box-shadow: 0 0 20px rgba(52, 152, 219, 0.8); }
+        
+        /* UI Inferior */
+        #bottom-bar {
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            display: flex; gap: 12px; background: rgba(30,30,30,0.95); padding: 12px 20px;
+            border-radius: 14px; border: 1px solid #444; backdrop-filter: blur(10px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.7); z-index: 100;
+            flex-wrap: wrap; max-width: 95vw; justify-content: center;
+        }
+
+        .action-btn { 
+            padding: 0 20px; height: 52px; font-weight: bold; font-size: 11px; 
+            text-transform: uppercase; display: flex; align-items: center; gap: 8px;
+            border-radius: 10px; transition: 0.2s;
+        }
+        .action-btn svg { width: 20px; height: 20px; }
+        
+        #btn-extrude { background: #f39c12; color: #fff; }
+        #btn-extrude:active { background: #e67e22; }
+        
+        #btn-subdivide { background: #27ae60; color: #fff; }
+        #btn-subdivide:active { background: #229954; }
+        
+        #btn-knife { background: #e67e22; color: #fff; }
+        #btn-knife:active { background: #d35400; }
+        
+        #btn-mirror { background: #3498db; color: #fff; }
+        #btn-mirror:active { background: #2980b9; }
+        
+        #btn-delete { background: #e74c3c; color: #fff; }
+        #btn-delete:active { background: #c0392b; }
+
+        /* Toggle SubSurf */
+        .toggle-container {
+            display: flex; align-items: center; gap: 10px; padding: 0 12px;
+            background: rgba(50,50,50,0.9); border-radius: 10px; height: 52px;
+        }
+        .toggle-container label { color: #aaa; font-size: 11px; white-space: nowrap; font-weight: 600; }
+        
+        .switch {
+            position: relative; width: 52px; height: 28px; background: #555;
+            border-radius: 14px; cursor: pointer; transition: 0.3s;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+        }
+        .switch.active { background: #27ae60; }
+        .switch::after {
+            content: ''; position: absolute; width: 24px; height: 24px;
+            background: white; border-radius: 50%; top: 2px; left: 2px;
+            transition: 0.3s; box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+        }
+        .switch.active::after { left: 26px; }
+
+        /* Slider de SubSurf Level */
+        .slider-container {
+            display: flex; align-items: center; gap: 8px; padding: 0 12px;
+            background: rgba(50,50,50,0.9); border-radius: 10px; height: 52px;
+        }
+        .slider-container label { color: #aaa; font-size: 11px; font-weight: 600; }
+        .slider-container input[type="range"] {
+            width: 100px; height: 6px; border-radius: 3px;
+            background: #555; outline: none; -webkit-appearance: none;
+        }
+        .slider-container input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 18px; height: 18px;
+            background: #27ae60; border-radius: 50%; cursor: pointer;
+        }
+        .slider-container .value { 
+            color: #27ae60; font-weight: bold; min-width: 20px; text-align: center;
+        }
+
+        /* Info Overlay */
+        #info-overlay {
+            position: absolute; top: 80px; width: 100%; text-align: center;
+            color: #888; font-size: 12px; pointer-events: none; text-shadow: 0 1px 3px black;
+            font-weight: 500;
+        }
+        
+        #warning {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+            background: rgba(231, 76, 60, 0.95); color: white; padding: 20px 30px;
+            border-radius: 12px; display: none; pointer-events: none; font-weight: bold;
+            z-index: 250; box-shadow: 0 8px 30px rgba(0,0,0,0.8);
+        }
+
+        /* Medidor de Distancia */
+        #distance-display {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(52, 152, 219, 0.95); color: white; padding: 18px 30px;
+            border-radius: 12px; font-size: 20px; font-weight: bold;
+            display: none; pointer-events: none; z-index: 150;
+            box-shadow: 0 6px 25px rgba(0,0,0,0.6);
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+        #distance-display.active { display: block; }
+        #distance-display .label {
+            font-size: 11px; opacity: 0.8; margin-bottom: 4px;
+        }
+
+        /* Modal Controles de Cámara - POSICIÓN AJUSTADA */
+        #camera-modal {
+            position: absolute; bottom: 130px; left: 50%; transform: translateX(-50%);
+            background: rgba(30,30,30,0.98); padding: 20px 30px; border-radius: 16px;
+            border: 2px solid #3498db; display: none; z-index: 98;
+            box-shadow: 0 10px 50px rgba(0,0,0,0.9);
+        }
+        #camera-modal.active { display: block; }
+        #camera-modal h3 { 
+            margin: 0 0 6px 0; color: #3498db; text-align: center; 
+            font-size: 16px; display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        #camera-modal p { 
+            color: #aaa; margin: 0 0 15px 0; text-align: center; font-size: 12px; 
+        }
+        
+        .camera-controls {
+            display: flex; gap: 12px; justify-content: center; margin-bottom: 15px;
+        }
+        
+        .camera-btn {
+            width: 56px; height: 56px; border-radius: 50%; background: rgba(52, 152, 219, 0.3);
+            border: 3px solid #3498db; color: #3498db; font-size: 24px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: 0.2s; box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+        }
+        .camera-btn:active { transform: scale(0.9); }
+        .camera-btn.active { 
+            background: #27ae60; border-color: #27ae60; color: white;
+            box-shadow: 0 0 20px rgba(39, 174, 96, 0.6);
+        }
+
+        .modal-actions {
+            display: flex; gap: 12px; justify-content: center;
+        }
+        .modal-btn {
+            padding: 12px 24px; border: none; border-radius: 10px;
+            font-weight: bold; font-size: 12px; cursor: pointer;
+            transition: 0.2s; text-transform: uppercase;
+        }
+        #btn-continue { background: #27ae60; color: white; }
+        #btn-continue:active { background: #229954; }
+        #btn-finish { background: #e74c3c; color: white; }
+        #btn-finish:active { background: #c0392b; }
+
+        /* Edge Weight Panel - POSICIÓN AJUSTADA */
+        #edge-weight-panel {
+            position: absolute; bottom: 130px; right: 20px;
+            background: rgba(30,30,30,0.98); padding: 20px 30px; border-radius: 16px;
+            border: 2px solid #f1c40f; display: none; z-index: 98;
+            box-shadow: 0 10px 50px rgba(0,0,0,0.9); min-width: 300px;
+        }
+        #edge-weight-panel.active { display: block; }
+        #edge-weight-panel h3 { 
+            margin: 0 0 15px 0; color: #f1c40f; text-align: center; 
+            font-size: 16px; font-weight: bold;
+        }
+        
+        .weight-slider-container {
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        .weight-slider-container label {
+            color: #aaa; font-size: 12px; display: flex; justify-content: space-between;
+        }
+        .weight-slider-container input[type="range"] {
+            width: 100%; height: 8px; border-radius: 4px;
+            background: #555; outline: none; -webkit-appearance: none;
+        }
+        .weight-slider-container input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 20px; height: 20px;
+            background: #f1c40f; border-radius: 50%; cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+        }
+        .weight-value {
+            color: #f1c40f; font-weight: bold; font-size: 14px;
+        }
+
+        /* Menu de Primitivas */
+        #primitives-menu {
+            position: absolute; top: 80px; left: 20px;
+            background: rgba(30,30,30,0.98); padding: 15px; border-radius: 12px;
+            border: 2px solid #9b59b6; display: none; z-index: 99;
+            box-shadow: 0 10px 50px rgba(0,0,0,0.9); min-width: 200px;
+        }
+        #primitives-menu.active { display: block; }
+        #primitives-menu h3 {
+            margin: 0 0 10px 0; color: #9b59b6; font-size: 14px; text-align: center;
+        }
+        .primitive-btn {
+            width: 100%; padding: 10px; margin: 5px 0; background: #3a3a3a;
+            border: none; border-radius: 8px; color: white; cursor: pointer;
+            font-size: 12px; font-weight: bold; transition: 0.2s;
+        }
+        .primitive-btn:hover { background: #9b59b6; }
+        .primitive-btn:active { transform: scale(0.95); }
+
+        /* File Menu */
+        #file-menu {
+            position: absolute; top: 80px; right: 20px;
+            background: rgba(30,30,30,0.98); padding: 15px; border-radius: 12px;
+            border: 2px solid #e74c3c; display: none; z-index: 99;
+            box-shadow: 0 10px 50px rgba(0,0,0,0.9); min-width: 200px;
+        }
+        #file-menu.active { display: block; }
+        #file-menu h3 {
+            margin: 0 0 10px 0; color: #e74c3c; font-size: 14px; text-align: center;
+        }
+
+        .divider { width: 1px; background: #555; height: 40px; margin: 0 8px; }
+
+        /* Subobject controls */
+        #subobject-controls {
+            display: none;
+            gap: 10px;
+        }
+        #subobject-controls.active {
+            display: flex;
+        }
+
+        /* Input oculto para cargar archivos */
+        #file-input { display: none; }
+    </style>
+</head>
+<body>
+
+    <div id="info-overlay">
+        <span id="mode-info">Modo Objeto</span> • 
+        <span id="poly-display">6</span> Caras • 
+        <span id="subsurf-info">SubSurf: OFF</span>
+    </div>
+    
+    <div id="warning">¡Operación no disponible!</div>
+    
+    <div id="distance-display">
+        <div class="label">DESPLAZAMIENTO</div>
+        <div id="distance-value">0.000 units</div>
+    </div>
+    
+    <!-- Modal de Controles -->
+    <div id="camera-modal">
+        <h3>🎯 Editando Geometría</h3>
+        <p>Activa controles temporales de cámara</p>
+        
+        <div class="camera-controls">
+            <div class="camera-btn" id="btn-rotate" title="Rotar">🔄</div>
+            <div class="camera-btn" id="btn-pan" title="Paneo">✋</div>
+            <div class="camera-btn" id="btn-zoom" title="Zoom">🔍</div>
+        </div>
+        
+        <div class="modal-actions">
+            <button class="modal-btn" id="btn-continue">✓ Continuar</button>
+            <button class="modal-btn" id="btn-finish">✕ Finalizar</button>
+        </div>
+    </div>
+
+    <!-- Panel de Peso de Borde -->
+    <div id="edge-weight-panel">
+        <h3>⚖️ Peso de Borde</h3>
+        <div class="weight-slider-container">
+            <label>
+                <span>Crease (0 = suave)</span>
+                <span class="weight-value" id="weight-display">0.0</span>
+            </label>
+            <input type="range" id="edge-weight-slider" min="0" max="100" value="0" step="1">
+            <p style="color: #888; font-size: 11px; margin: 10px 0 0 0; text-align: center;">
+                Peso 1.0 = borde sin SubSurf
+            </p>
+        </div>
+    </div>
+
+    <!-- Menu de Primitivas -->
+    <div id="primitives-menu">
+        <h3>➕ Agregar Primitiva</h3>
+        <button class="primitive-btn" data-primitive="cube">Cubo</button>
+        <button class="primitive-btn" data-primitive="sphere">Esfera</button>
+        <button class="primitive-btn" data-primitive="cylinder">Cilindro</button>
+        <button class="primitive-btn" data-primitive="cone">Cono</button>
+        <button class="primitive-btn" data-primitive="plane">Plano</button>
+        <button class="primitive-btn" data-primitive="torus">Toroide</button>
+    </div>
+
+    <!-- File Menu -->
+    <div id="file-menu">
+        <h3>💾 Archivo</h3>
+        <button class="primitive-btn" id="btn-save">Guardar (.b3d)</button>
+        <button class="primitive-btn" id="btn-load">Cargar (.b3d)</button>
+        <button class="primitive-btn" id="btn-export-fbx">Exportar FBX</button>
+        <button class="primitive-btn" id="btn-export-obj">Exportar OBJ</button>
+    </div>
+
+    <input type="file" id="file-input" accept=".b3d">
+
+    <!-- UI Superior -->
+    <div id="top-bar">
+        <!-- Botones de Modo Principal -->
+        <button class="btn mode-btn active" id="btn-object-mode">
+            <svg viewBox="0 0 24 24" style="width:28px;height:28px">
+                <path d="M12 2L2 7v10l10 5 10-5V7L12 2z M12 12L2 7l10-5 10 5-10 5z"/>
+            </svg>
+            <span style="font-size: 10px;">OBJETO</span>
+        </button>
+        
+        <button class="btn mode-btn" id="btn-subobject-mode">
+            <svg viewBox="0 0 24 24" style="width:28px;height:28px">
+                <circle cx="6" cy="6" r="2"/>
+                <circle cx="18" cy="6" r="2"/>
+                <circle cx="6" cy="18" r="2"/>
+                <circle cx="18" cy="18" r="2"/>
+                <path d="M6 6 L18 6 M18 6 L18 18 M18 18 L6 18 M6 18 L6 6" stroke="currentColor" stroke-width="1" fill="none"/>
+            </svg>
+            <span style="font-size: 10px;">EDITAR</span>
+        </button>
+        
+        <div class="divider"></div>
+        
+        <!-- Controles de Subobjetos -->
+        <div id="subobject-controls">
+            <button class="btn active" data-mode="vertex" title="Vértices">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/></svg>
+            </button>
+            <button class="btn" data-mode="edge" title="Bordes">
+                <svg viewBox="0 0 24 24"><path d="M4 20L20 4" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg>
+            </button>
+            <button class="btn" data-mode="face" title="Caras">
+                <svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>
+            </button>
+            
+            <div class="divider"></div>
+            
+            <button class="btn" id="btn-select-mode" title="Multi-Selección">
+                <svg viewBox="0 0 24 24">
+                    <rect x="3" y="3" width="7" height="7"/>
+                    <rect x="13" y="3" width="7" height="7"/>
+                    <rect x="3" y="13" width="7" height="7"/>
+                </svg>
+            </button>
+        </div>
+
+        <div class="divider"></div>
+        
+        <!-- Botones de Archivo y Primitivas -->
+        <button class="btn" id="btn-add-primitive" title="Agregar Primitiva">
+            <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+        </button>
+        
+        <button class="btn" id="btn-file-menu" title="Archivo">
+            <svg viewBox="0 0 24 24"><path d="M6 2c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6H6zm7 7V3.5L18.5 9H13z"/></svg>
+        </button>
+    </div>
+
+    <!-- UI Inferior -->
+    <div id="bottom-bar">
+        <button class="btn action-btn" id="btn-extrude">
+            <svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z M8 8h8v8H8z"/></svg>
+            Extruir
+        </button>
+        <button class="btn action-btn" id="btn-subdivide">
+            <svg viewBox="0 0 24 24"><path d="M3 3h18v18H3z M12 3v18 M3 12h18"/></svg>
+            Dividir
+        </button>
+        <button class="btn action-btn" id="btn-knife">
+            <svg viewBox="0 0 24 24"><path d="M22 5l-5 5-5-5 5-5 5 5zM3 20l7-7 5 5-7 7-5-5z"/></svg>
+            Corte
+        </button>
+        
+        <div class="divider"></div>
+        
+        <button class="btn action-btn" id="btn-mirror">
+            <svg viewBox="0 0 24 24"><path d="M15 21h2v-2h-2v2zm4-12h2V7h-2v2zM3 5v14c0 1.1.9 2 2 2h4v-2H5V5h4V3H5c-1.1 0-2 .9-2 2zm16-2v2h2c0-1.1-.9-2-2-2zm-8 20h2V1h-2v22zm8-6h2v-2h-2v2zM15 5h2V3h-2v2zm4 8h2v-2h-2v2zm0 8c1.1 0 2-.9 2-2h-2v2z"/></svg>
+            Espejo
+        </button>
+        
+        <div class="toggle-container">
+            <label>SubSurf</label>
+            <div class="switch" id="toggle-subsurf"></div>
+        </div>
+        
+        <div class="slider-container" id="subsurf-level-container" style="display: none;">
+            <label>Nivel</label>
+            <input type="range" id="subsurf-level" min="0" max="3" value="2" step="1">
+            <span class="value" id="subsurf-level-value">2</span>
+        </div>
+        
+        <div class="divider"></div>
+        
+        <button class="btn action-btn" id="btn-delete">
+            <svg viewBox="0 0 24 24">
+                <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+            </svg>
+            Borrar
+        </button>
+    </div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://ga.jspm.io/npm:three@0.160.0/build/three.module.js",
+            "three/addons/": "https://ga.jspm.io/npm:three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { TransformControls } from 'three/addons/controls/TransformControls.js';
+
+        // ==========================================
+        // CONFIGURACIÓN GLOBAL
+        // ==========================================
+        let isObjectMode = true;
+        let isMultiSelect = false;
+        let selectedObjects = [];
+        let isEditing = false;
+        let initialPositions = new Map();
+        let cameraMode = null;
+        let subsurfEnabled = false;
+        let subsurfLevel = 2;
+        let currentSubMode = 'vertex';
+        let mirrorAxis = null; // null, 'x', 'y', 'z'
+
+        // Sistema de medición 3D
+        let measurementArrow = null;
+        let measurementOrigin = new THREE.Vector3();
+
+        // Edge weights para SubSurf
+        let edgeWeights = new Map();
+
+        // Lista de objetos en la escena
+        let sceneObjects = [];
+        let currentObjectIndex = 0;
+
+        // ==========================================
+        // MOTOR QUAD MEJORADO
+        // ==========================================
+        class QuadEngine {
+            constructor() {
+                this.vertices = []; 
+                this.quads = [];
+                this.originalVertices = []; // Para preservar estado original
+                this.originalQuads = [];
+            }
+
+            saveOriginal() {
+                this.originalVertices = this.vertices.map(v => v.clone());
+                this.originalQuads = this.quads.map(q => [...q]);
+            }
+
+            getCenterOfMass() {
+                const center = new THREE.Vector3();
+                this.vertices.forEach(v => center.add(v));
+                center.divideScalar(this.vertices.length);
+                return center;
+            }
+
+            addQuad(a,b,c,d) { this.quads.push([a,b,c,d]); }
+
+            // Subdivisión QUAD mejorada
+            subdivideQuad(cuts = 1) {
+                for(let cut = 0; cut < cuts; cut++) {
+                    const newQuads = [];
+                    const edgeCache = new Map();
+
+                    const getMid = (i1, i2) => {
+                        const key = i1<i2 ? `${i1}_${i2}` : `${i2}_${i1}`;
+                        if(edgeCache.has(key)) return edgeCache.get(key);
+                        
+                        const v1 = this.vertices[i1];
+                        const v2 = this.vertices[i2];
+                        if(!v1 || !v2) return null;
+                        
+                        const mid = new THREE.Vector3().addVectors(v1, v2).multiplyScalar(0.5);
+                        this.vertices.push(mid);
+                        const idx = this.vertices.length-1;
+                        edgeCache.set(key, idx);
+                        return idx;
+                    };
+
+                    for(let q of this.quads) {
+                        if(q.some(i => i >= this.vertices.length || !this.vertices[i])) continue;
+                        
+                        const v = q.map(i => this.vertices[i]);
+                        const centerPos = new THREE.Vector3().add(v[0]).add(v[1]).add(v[2]).add(v[3]).multiplyScalar(0.25);
+                        
+                        this.vertices.push(centerPos);
+                        const cIdx = this.vertices.length - 1;
+
+                        const m01 = getMid(q[0], q[1]);
+                        const m12 = getMid(q[1], q[2]);
+                        const m23 = getMid(q[2], q[3]);
+                        const m30 = getMid(q[3], q[0]);
+
+                        if(m01 === null || m12 === null || m23 === null || m30 === null) continue;
+
+                        newQuads.push([q[0], m01, cIdx, m30]);
+                        newQuads.push([m01, q[1], m12, cIdx]);
+                        newQuads.push([cIdx, m12, q[2], m23]);
+                        newQuads.push([m30, cIdx, m23, q[3]]);
+                    }
+                    this.quads = newQuads;
+                }
+                this.saveOriginal();
+            }
+
+            // Catmull-Clark SubSurf con preservación
+            applySubdivisionSurface(levels) {
+                // Trabajar sobre copia temporal
+                const tempVerts = this.originalVertices.map(v => v.clone());
+                const tempQuads = this.originalQuads.map(q => [...q]);
+
+                for(let level = 0; level < levels; level++) {
+                    const newVertices = [];
+                    const newQuads = [];
+                    const edgePoints = new Map();
+                    const facePoints = [];
+                    
+                    for(let q of tempQuads) {
+                        const v = q.map(i => tempVerts[i]);
+                        const fp = new THREE.Vector3().add(v[0]).add(v[1]).add(v[2]).add(v[3]).multiplyScalar(0.25);
+                        facePoints.push(fp);
+                    }
+
+                    const getEdgePoint = (i1, i2, adjacentFaces) => {
+                        const key = i1<i2 ? `${i1}_${i2}` : `${i2}_${i1}`;
+                        if(edgePoints.has(key)) return edgePoints.get(key);
+
+                        const v1 = tempVerts[i1];
+                        const v2 = tempVerts[i2];
+                        const mid = new THREE.Vector3().addVectors(v1, v2).multiplyScalar(0.5);
+                        
+                        const weight = edgeWeights.get(key) || 0;
+                        
+                        if(adjacentFaces.length > 0 && weight < 1.0) {
+                            const avgFace = new THREE.Vector3();
+                            adjacentFaces.forEach(fIdx => avgFace.add(facePoints[fIdx]));
+                            avgFace.divideScalar(adjacentFaces.length);
+                            
+                            mid.lerp(avgFace, (1 - weight) * 0.5);
+                        }
+
+                        const idx = newVertices.length;
+                        newVertices.push(mid);
+                        edgePoints.set(key, idx);
+                        return idx;
+                    };
+
+                    const vertexMapping = new Map();
+                    tempVerts.forEach((v, i) => {
+                        const adjacentFaces = [];
+                        const adjacentEdges = [];
+                        
+                        tempQuads.forEach((q, qIdx) => {
+                            if(q.includes(i)) {
+                                adjacentFaces.push(qIdx);
+                                const idx = q.indexOf(i);
+                                const prev = q[(idx + 3) % 4];
+                                const next = q[(idx + 1) % 4];
+                                if(!adjacentEdges.some(e => e.includes(prev))) adjacentEdges.push([i, prev]);
+                                if(!adjacentEdges.some(e => e.includes(next))) adjacentEdges.push([i, next]);
+                            }
+                        });
+
+                        const n = adjacentFaces.length;
+                        if(n === 0) {
+                            vertexMapping.set(i, newVertices.length);
+                            newVertices.push(v.clone());
+                            return;
+                        }
+
+                        const F = new THREE.Vector3();
+                        adjacentFaces.forEach(fIdx => F.add(facePoints[fIdx]));
+                        F.divideScalar(n);
+
+                        const R = new THREE.Vector3();
+                        adjacentEdges.forEach(([i1, i2]) => {
+                            R.add(tempVerts[i1]).add(tempVerts[i2]);
+                        });
+                        R.divideScalar(adjacentEdges.length * 2);
+
+                        const newV = new THREE.Vector3();
+                        newV.addScaledVector(F, 1);
+                        newV.addScaledVector(R, 2);
+                        newV.addScaledVector(v, n - 3);
+                        newV.divideScalar(n);
+
+                        vertexMapping.set(i, newVertices.length);
+                        newVertices.push(newV);
+                    });
+
+                    tempQuads.forEach((q, qIdx) => {
+                        const fp = facePoints[qIdx];
+                        const fpIdx = newVertices.length;
+                        newVertices.push(fp);
+
+                        for(let i = 0; i < 4; i++) {
+                            const curr = q[i];
+                            const next = q[(i + 1) % 4];
+                            
+                            const vCurr = vertexMapping.get(curr);
+                            const ep = getEdgePoint(curr, next, [qIdx]);
+                            const vNext = vertexMapping.get(next);
+                            const epPrev = getEdgePoint(q[(i + 3) % 4], curr, [qIdx]);
+
+                            newQuads.push([vCurr, ep, fpIdx, epPrev]);
+                        }
+                    });
+
+                    tempVerts.length = 0;
+                    tempVerts.push(...newVertices);
+                    tempQuads.length = 0;
+                    tempQuads.push(...newQuads);
+                }
+
+                // Aplicar resultado
+                this.vertices = tempVerts;
+                this.quads = tempQuads;
+            }
+
+            getRenderData() {
+                const positions = [];
+                for(let q of this.quads) {
+                    const v = q.map(i => this.vertices[i]);
+                    if(!v[0] || !v[1] || !v[2] || !v[3]) continue;
+                    positions.push(v[0].x, v[0].y, v[0].z, v[1].x, v[1].y, v[1].z, v[2].x, v[2].y, v[2].z);
+                    positions.push(v[0].x, v[0].y, v[0].z, v[2].x, v[2].y, v[2].z, v[3].x, v[3].y, v[3].z);
+                }
+                return new Float32Array(positions);
+            }
+
+            getWireframeData() {
+                const positions = [];
+                for(let q of this.quads) {
+                    const v = q.map(i => this.vertices[i]);
+                    if(!v[0]) continue;
+                    for(let i=0; i<4; i++) {
+                        const vCurr = v[i];
+                        const vNext = v[(i+1)%4];
+                        if(!vCurr || !vNext) continue;
+                        positions.push(vCurr.x, vCurr.y, vCurr.z);
+                        positions.push(vNext.x, vNext.y, vNext.z);
+                    }
+                }
+                return new Float32Array(positions);
+            }
+
+            extrudeFace(index) {
+                if(index < 0 || index >= this.quads.length) return;
+                const q = this.quads[index];
+                
+                if(q.some(i => i >= this.vertices.length || !this.vertices[i])) return;
+                
+                const v = q.map(i => this.vertices[i]);
+                const vA = new THREE.Vector3().subVectors(v[1], v[0]);
+                const vB = new THREE.Vector3().subVectors(v[3], v[0]);
+                const normal = new THREE.Vector3().crossVectors(vA, vB).normalize();
+                
+                const topIndices = [];
+                const dist = 0.5;
+
+                for(let i=0; i<4; i++) {
+                    const newPos = v[i].clone().add(normal.clone().multiplyScalar(dist));
+                    this.vertices.push(newPos);
+                    topIndices.push(this.vertices.length-1);
+                }
+
+                const base = [...q];
+                for(let i=0; i<4; i++) {
+                    const next = (i+1)%4;
+                    this.addQuad(base[i], base[next], topIndices[next], topIndices[i]);
+                }
+
+                this.quads[index] = topIndices;
+                this.saveOriginal();
+                return index;
+            }
+
+            deleteFace(index) {
+                if(index > -1 && index < this.quads.length) {
+                    this.quads.splice(index, 1);
+                    this.saveOriginal();
+                }
+            }
+
+            // MIRROR MODIFIER
+            applyMirror(axis) {
+                if(!axis) return;
+                
+                const axisIndex = {x: 0, y: 1, z: 2}[axis];
+                const mirroredVerts = [];
+                const vertexMap = new Map();
+
+                // Encontrar vértices en el plano de simetría
+                this.originalVertices.forEach((v, i) => {
+                    if(Math.abs(v.getComponent(axisIndex)) < 0.001) {
+                        vertexMap.set(i, i); // Vértice en el plano
+                    }
+                });
+
+                // Crear vértices espejo
+                this.originalVertices.forEach((v, i) => {
+                    if(!vertexMap.has(i)) {
+                        const mirrored = v.clone();
+                        mirrored.setComponent(axisIndex, -v.getComponent(axisIndex));
+                        mirroredVerts.push(mirrored);
+                        vertexMap.set(i, this.originalVertices.length + mirroredVerts.length - 1);
+                    }
+                });
+
+                // Agregar vértices espejo
+                mirroredVerts.forEach(v => this.vertices.push(v));
+
+                // Crear caras espejo (invertidas)
+                const mirroredQuads = this.originalQuads.map(q => {
+                    return [vertexMap.get(q[0]), vertexMap.get(q[3]), vertexMap.get(q[2]), vertexMap.get(q[1])];
+                });
+
+                mirroredQuads.forEach(q => this.quads.push(q));
+                this.saveOriginal();
+            }
+
+            // Primitivas
+            static createCube() {
+                const engine = new QuadEngine();
+                const s = 1;
+                const v = [[-s,-s,s],[s,-s,s],[s,s,s],[-s,s,s],[-s,-s,-s],[s,-s,-s],[s,s,-s],[-s,s,-s]];
+                v.forEach(p => engine.vertices.push(new THREE.Vector3(...p)));
+                engine.addQuad(0,1,2,3); engine.addQuad(5,4,7,6); engine.addQuad(1,5,6,2);
+                engine.addQuad(4,0,3,7); engine.addQuad(3,2,6,7); engine.addQuad(4,5,1,0);
+                engine.saveOriginal();
+                return engine;
+            }
+
+            static createSphere(segments = 8) {
+                const engine = new QuadEngine();
+                const radius = 1;
+                
+                for(let lat = 0; lat <= segments; lat++) {
+                    const theta = lat * Math.PI / segments;
+                    const sinTheta = Math.sin(theta);
+                    const cosTheta = Math.cos(theta);
+                    
+                    for(let lon = 0; lon <= segments; lon++) {
+                        const phi = lon * 2 * Math.PI / segments;
+                        const x = Math.cos(phi) * sinTheta;
+                        const y = cosTheta;
+                        const z = Math.sin(phi) * sinTheta;
+                        engine.vertices.push(new THREE.Vector3(x * radius, y * radius, z * radius));
+                    }
+                }
+
+                for(let lat = 0; lat < segments; lat++) {
+                    for(let lon = 0; lon < segments; lon++) {
+                        const first = (lat * (segments + 1)) + lon;
+                        const second = first + segments + 1;
+                        engine.addQuad(first, second, second + 1, first + 1);
+                    }
+                }
+                engine.saveOriginal();
+                return engine;
+            }
+
+            static createCylinder(segments = 16) {
+                const engine = new QuadEngine();
+                const radius = 1, height = 2;
+                
+                // Vértices superiores e inferiores
+                for(let i = 0; i <= segments; i++) {
+                    const angle = (i / segments) * Math.PI * 2;
+                    const x = Math.cos(angle) * radius;
+                    const z = Math.sin(angle) * radius;
+                    engine.vertices.push(new THREE.Vector3(x, height/2, z));
+                    engine.vertices.push(new THREE.Vector3(x, -height/2, z));
+                }
+
+                // Tapas
+                const topCenter = engine.vertices.length;
+                engine.vertices.push(new THREE.Vector3(0, height/2, 0));
+                const bottomCenter = engine.vertices.length;
+                engine.vertices.push(new THREE.Vector3(0, -height/2, 0));
+
+                // Lados
+                for(let i = 0; i < segments; i++) {
+                    const curr = i * 2;
+                    const next = ((i + 1) % segments) * 2;
+                    engine.addQuad(curr, next, next + 1, curr + 1);
+                }
+
+                // Tapas (como triángulos convertidos a quads)
+                for(let i = 0; i < segments; i++) {
+                    const curr = i * 2;
+                    const next = ((i + 1) % segments) * 2;
+                    engine.addQuad(topCenter, curr, next, topCenter);
+                    engine.addQuad(bottomCenter, bottomCenter, next + 1, curr + 1);
+                }
+
+                engine.saveOriginal();
+                return engine;
+            }
+
+            static createPlane(subdivisions = 1) {
+                const engine = new QuadEngine();
+                const size = 2;
+                const step = size / subdivisions;
+                
+                for(let y = 0; y <= subdivisions; y++) {
+                    for(let x = 0; x <= subdivisions; x++) {
+                        engine.vertices.push(new THREE.Vector3(
+                            -size/2 + x * step,
+                            0,
+                            -size/2 + y * step
+                        ));
+                    }
+                }
+
+                for(let y = 0; y < subdivisions; y++) {
+                    for(let x = 0; x < subdivisions; x++) {
+                        const i = y * (subdivisions + 1) + x;
+                        engine.addQuad(i, i + 1, i + subdivisions + 2, i + subdivisions + 1);
+                    }
+                }
+
+                engine.saveOriginal();
+                return engine;
+            }
+
+            static createCone(segments = 16) {
+                const engine = new QuadEngine();
+                const radius = 1, height = 2;
+                
+                // Vértices base
+                for(let i = 0; i <= segments; i++) {
+                    const angle = (i / segments) * Math.PI * 2;
+                    const x = Math.cos(angle) * radius;
+                    const z = Math.sin(angle) * radius;
+                    engine.vertices.push(new THREE.Vector3(x, 0, z));
+                }
+
+                // Ápice y centro base
+                const apex = engine.vertices.length;
+                engine.vertices.push(new THREE.Vector3(0, height, 0));
+                const baseCenter = engine.vertices.length;
+                engine.vertices.push(new THREE.Vector3(0, 0, 0));
+
+                // Lados
+                for(let i = 0; i < segments; i++) {
+                    const curr = i;
+                    const next = (i + 1) % segments;
+                    engine.addQuad(curr, next, apex, apex);
+                }
+
+                // Base
+                for(let i = 0; i < segments; i++) {
+                    const curr = i;
+                    const next = (i + 1) % segments;
+                    engine.addQuad(baseCenter, baseCenter, next, curr);
+                }
+
+                engine.saveOriginal();
+                return engine;
+            }
+
+            static createTorus(segments = 16, tubeSegments = 8) {
+                const engine = new QuadEngine();
+                const radius = 1, tubeRadius = 0.3;
+
+                for(let i = 0; i <= segments; i++) {
+                    const u = (i / segments) * Math.PI * 2;
+                    const centerX = Math.cos(u) * radius;
+                    const centerZ = Math.sin(u) * radius;
+
+                    for(let j = 0; j <= tubeSegments; j++) {
+                        const v = (j / tubeSegments) * Math.PI * 2;
+                        const x = centerX + Math.cos(v) * tubeRadius * Math.cos(u);
+                        const y = Math.sin(v) * tubeRadius;
+                        const z = centerZ + Math.cos(v) * tubeRadius * Math.sin(u);
+                        engine.vertices.push(new THREE.Vector3(x, y, z));
+                    }
+                }
+
+                for(let i = 0; i < segments; i++) {
+                    for(let j = 0; j < tubeSegments; j++) {
+                        const a = i * (tubeSegments + 1) + j;
+                        const b = a + tubeSegments + 1;
+                        engine.addQuad(a, b, b + 1, a + 1);
+                    }
+                }
+
+                engine.saveOriginal();
+                return engine;
+            }
+
+            // Exportar a FBX (formato texto simplificado)
+            exportFBX() {
+                let fbx = '; FBX 7.4.0 project file\n';
+                fbx += `; Created by Blender Lite Pro\n\n`;
+                fbx += 'FBXHeaderExtension:  {\n\tFBXHeaderVersion: 1003\n}\n\n';
+                fbx += 'Definitions:  {\n\tVersion: 100\n\tCount: 1\n}\n\n';
+                fbx += 'Objects:  {\n';
+                fbx += '\tGeometry: 1, "Geometry::", "Mesh" {\n';
+                
+                // Vértices
+                fbx += '\t\tVertices: *' + (this.originalVertices.length * 3) + ' {\n\t\t\ta: ';
+                fbx += this.originalVertices.map(v => `${v.x},${v.y},${v.z}`).join(',');
+                fbx += '\n\t\t}\n';
+                
+                // Índices (convertir quads a tris)
+                const indices = [];
+                this.originalQuads.forEach(q => {
+                    indices.push(q[0], q[1], q[2]);
+                    indices.push(q[0], q[2], q[3]);
+                });
+                fbx += '\t\tPolygonVertexIndex: *' + indices.length + ' {\n\t\t\ta: ';
+                fbx += indices.join(',');
+                fbx += '\n\t\t}\n';
+                
+                fbx += '\t}\n';
+                fbx += '}\n';
+                
+                return fbx;
+            }
+
+            // Exportar a OBJ
+            exportOBJ() {
+                let obj = '# OBJ File - Blender Lite Pro\n';
+                obj += `# Vertices: ${this.originalVertices.length}\n`;
+                obj += `# Faces: ${this.originalQuads.length}\n\n`;
+                
+                this.originalVertices.forEach(v => {
+                    obj += `v ${v.x} ${v.y} ${v.z}\n`;
+                });
+                
+                obj += '\n';
+                
+                this.originalQuads.forEach(q => {
+                    obj += `f ${q[0]+1} ${q[1]+1} ${q[2]+1} ${q[3]+1}\n`;
+                });
+                
+                return obj;
+            }
+
+            // Serializar a JSON (.b3d)
+            toJSON() {
+                return {
+                    version: '1.0',
+                    vertices: this.originalVertices.map(v => [v.x, v.y, v.z]),
+                    quads: this.originalQuads,
+                    edgeWeights: Array.from(edgeWeights.entries())
+                };
+            }
+
+            // Cargar desde JSON
+            fromJSON(data) {
+                this.vertices = data.vertices.map(v => new THREE.Vector3(...v));
+                this.quads = data.quads;
+                this.originalVertices = this.vertices.map(v => v.clone());
+                this.originalQuads = this.quads.map(q => [...q]);
+                
+                if(data.edgeWeights) {
+                    edgeWeights.clear();
+                    data.edgeWeights.forEach(([key, value]) => edgeWeights.set(key, value));
+                }
+            }
+        }
+
+        // ==========================================
+        // ESCENA
+        // ==========================================
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x1a1a1a);
+        scene.add(new THREE.GridHelper(20, 20, 0x444444, 0x2a2a2a));
+
+        const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(5, 5, 5);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        document.body.appendChild(renderer.domElement);
+
+        const light = new THREE.DirectionalLight(0xffffff, 1.5);
+        light.position.set(5, 10, 7);
+        scene.add(light, new THREE.AmbientLight(0xffffff, 0.5));
+
+        // Flecha de medición
+        function createMeasurementArrow() {
+            const arrow = new THREE.ArrowHelper(
+                new THREE.Vector3(0, 1, 0),
+                new THREE.Vector3(0, 0, 0),
+                1, 0xff6b6b, 0.3, 0.2
+            );
+            arrow.visible = false;
+            scene.add(arrow);
+            return arrow;
+        }
+        measurementArrow = createMeasurementArrow();
+
+        function updateMeasurementArrow(currentPos) {
+            const distance = currentPos.distanceTo(measurementOrigin);
+            if(distance < 0.01) {
+                measurementArrow.visible = false;
+                return;
+            }
+            const direction = new THREE.Vector3().subVectors(currentPos, measurementOrigin).normalize();
+            measurementArrow.position.copy(measurementOrigin);
+            measurementArrow.setDirection(direction);
+            measurementArrow.setLength(distance, distance * 0.15, distance * 0.1);
+            measurementArrow.visible = true;
+        }
+
+        // Crear objeto inicial
+        function createSceneObject(engine) {
+            const objectGroup = new THREE.Group();
+            objectGroup.userData.engine = engine;
+
+            const mainMesh = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshStandardMaterial({ 
+                color: 0x7f8c8d, roughness: 0.5, metalness: 0.1, polygonOffset: true, polygonOffsetFactor: 1 
+            }));
+            objectGroup.add(mainMesh);
+            objectGroup.userData.mainMesh = mainMesh;
+
+            const wireMesh = new THREE.LineSegments(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ 
+                color: 0x0a0a0a, opacity: 0.6, transparent: true 
+            }));
+            objectGroup.add(wireMesh);
+            objectGroup.userData.wireMesh = wireMesh;
+
+            const cageMesh = new THREE.LineSegments(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ 
+                color: 0x3498db, opacity: 0.7, transparent: true, linewidth: 2
+            }));
+            cageMesh.visible = false;
+            objectGroup.add(cageMesh);
+            objectGroup.userData.cageMesh = cageMesh;
+
+            const helperGroup = new THREE.Group();
+            objectGroup.add(helperGroup);
+            objectGroup.userData.helperGroup = helperGroup;
+
+            scene.add(objectGroup);
+            sceneObjects.push(objectGroup);
+            
+            updateObjectGeometry(objectGroup);
+            return objectGroup;
+        }
+
+        function updateObjectGeometry(objectGroup) {
+            const engine = objectGroup.userData.engine;
+            const mainMesh = objectGroup.userData.mainMesh;
+            const wireMesh = objectGroup.userData.wireMesh;
+            const cageMesh = objectGroup.userData.cageMesh;
+
+            mainMesh.geometry.dispose();
+            wireMesh.geometry.dispose();
+            cageMesh.geometry.dispose();
+
+            // Aplicar SubSurf si está activo
+            if(subsurfEnabled && subsurfLevel > 0) {
+                engine.applySubdivisionSurface(subsurfLevel);
+            } else {
+                // Usar geometría original
+                engine.vertices = engine.originalVertices.map(v => v.clone());
+                engine.quads = engine.originalQuads.map(q => [...q]);
+            }
+
+            // Aplicar Mirror si está activo
+            if(mirrorAxis) {
+                engine.applyMirror(mirrorAxis);
+            }
+
+            const renderData = engine.getRenderData();
+            const wireData = engine.getWireframeData();
+
+            const newMainGeo = new THREE.BufferGeometry();
+            newMainGeo.setAttribute('position', new THREE.BufferAttribute(renderData, 3));
+            newMainGeo.computeVertexNormals();
+            mainMesh.geometry = newMainGeo;
+
+            const newWireGeo = new THREE.BufferGeometry();
+            newWireGeo.setAttribute('position', new THREE.BufferAttribute(wireData, 3));
+            wireMesh.geometry = newWireGeo;
+
+            if(subsurfEnabled && subsurfLevel > 0) {
+                const baseCopy = new QuadEngine();
+                baseCopy.vertices = engine.originalVertices.map(v => v.clone());
+                baseCopy.quads = engine.originalQuads.map(q => [...q]);
+                const cageData = baseCopy.getWireframeData();
+                
+                const newCageGeo = new THREE.BufferGeometry();
+                newCageGeo.setAttribute('position', new THREE.BufferAttribute(cageData, 3));
+                cageMesh.geometry = newCageGeo;
+                cageMesh.visible = true;
+            } else {
+                cageMesh.visible = false;
+            }
+
+            document.getElementById('poly-display').innerText = engine.originalQuads.length;
+        }
+
+        // Crear cubo inicial
+        const initialEngine = QuadEngine.createCube();
+        const currentObject = createSceneObject(initialEngine);
+
+        // ==========================================
+        // HANDLES
+        // ==========================================
+        function rebuildHandles() {
+            const helperGroup = currentObject.userData.helperGroup;
+            helperGroup.clear();
+            selectedObjects = [];
+            
+            if(isObjectMode) return;
+
+            const engine = currentObject.userData.engine;
+            const verts = engine.originalVertices;
+            const quads = engine.originalQuads;
+
+            if(verts.length > 3000 && currentSubMode !== 'face') return;
+
+            if(currentSubMode === 'vertex') {
+                const geo = new THREE.SphereGeometry(0.12);
+                const mat = new THREE.MeshBasicMaterial({ color: 0xe74c3c });
+                verts.forEach((v, i) => {
+                    if(!v) return;
+                    const h = new THREE.Mesh(geo, mat);
+                    h.position.copy(v);
+                    h.userData = { type: 'vertex', index: i };
+                    helperGroup.add(h);
+                });
+            } else if (currentSubMode === 'face') {
+                const geo = new THREE.PlaneGeometry(0.25, 0.25);
+                const mat = new THREE.MeshBasicMaterial({ color: 0x3498db, side: THREE.DoubleSide, depthTest: false });
+                
+                quads.forEach((q, i) => {
+                    if(q.some(idx => idx >= verts.length || !verts[idx])) return;
+                    
+                    const center = new THREE.Vector3();
+                    q.forEach(idx => center.add(verts[idx]));
+                    center.multiplyScalar(0.25);
+                    
+                    const v0 = verts[q[0]];
+                    const v1 = verts[q[1]];
+                    const v2 = verts[q[3]];
+                    const n = new THREE.Vector3().subVectors(v1, v0).cross(new THREE.Vector3().subVectors(v2, v0)).normalize();
+
+                    const h = new THREE.Mesh(geo, mat);
+                    h.position.copy(center);
+                    h.lookAt(center.clone().add(n));
+                    h.userData = { type: 'face', index: i };
+                    helperGroup.add(h);
+                });
+            } else if (currentSubMode === 'edge') {
+                const geo = new THREE.BoxGeometry(0.06, 0.06, 1);
+                const mat = new THREE.MeshBasicMaterial({ color: 0xf1c40f });
+                const processed = new Set();
+
+                quads.forEach(q => {
+                    for(let k=0; k<4; k++) {
+                        const i1 = q[k];
+                        const i2 = q[(k+1)%4];
+                        
+                        if(i1 >= verts.length || i2 >= verts.length) continue;
+                        if(!verts[i1] || !verts[i2]) continue;
+                        
+                        const key = i1<i2 ? `${i1}_${i2}` : `${i2}_${i1}`;
+                        if(processed.has(key)) continue;
+                        processed.add(key);
+
+                        const v1 = verts[i1];
+                        const v2 = verts[i2];
+                        const dist = v1.distanceTo(v2);
+                        
+                        const h = new THREE.Mesh(geo, mat);
+                        h.position.copy(v1).add(v2).multiplyScalar(0.5);
+                        h.lookAt(v2);
+                        h.scale.z = dist * 0.6;
+                        h.userData = { type: 'edge', v1: i1, v2: i2, edgeKey: key };
+                        helperGroup.add(h);
+                    }
+                });
+            }
+        }
+
+        // ==========================================
+        // CONTROLES
+        // ==========================================
+        const orbit = new OrbitControls(camera, renderer.domElement);
+        orbit.enableDamping = true;
+        orbit.dampingFactor = 0.05;
+        orbit.touches = {
+            ONE: THREE.TOUCH.ROTATE,
+            TWO: THREE.TOUCH.DOLLY_PAN
+        };
+
+        const transform = new TransformControls(camera, renderer.domElement);
+        transform.setSpace('world');
+        transform.setSize(1.2);
+        scene.add(transform);
+        
+        transform.addEventListener('dragging-changed', e => {
+            orbit.enabled = !e.value;
+            if(!e.value && isEditing && !isObjectMode) {
+                showCameraModal();
+            }
+        });
+
+        function enableNormalControls() {
+            orbit.enabled = true;
+            orbit.enableRotate = true;
+            orbit.enablePan = true;
+            orbit.enableZoom = true;
+            orbit.touches = {
+                ONE: THREE.TOUCH.ROTATE,
+                TWO: THREE.TOUCH.DOLLY_PAN
+            };
+        }
+
+        // Medición
+        transform.addEventListener('mouseDown', () => {
+            initialPositions.clear();
+            const engine = currentObject.userData.engine;
+            
+            if(isObjectMode) {
+                measurementOrigin.copy(currentObject.position);
+                initialPositions.set(currentObject, {
+                    position: currentObject.position.clone(),
+                    rotation: currentObject.rotation.clone(),
+                    scale: currentObject.scale.clone()
+                });
+            } else if(selectedObjects.length > 0) {
+                const h = selectedObjects[0];
+                measurementOrigin.copy(h.position);
+                
+                selectedObjects.forEach(obj => {
+                    initialPositions.set(obj, obj.position.clone());
+                });
+
+                if(h.userData.type === 'face') {
+                    const q = engine.originalQuads[h.userData.index];
+                    const verts = engine.originalVertices;
+                    q.forEach(vIdx => {
+                        initialPositions.set(`face_${h.userData.index}_v${vIdx}`, verts[vIdx].clone());
+                    });
+                }
+            }
+        });
+
+        transform.addEventListener('objectChange', () => {
+            const obj = transform.object;
+            if(!obj) return;
+            const engine = currentObject.userData.engine;
+
+            // MODO OBJETO
+            if(isObjectMode && obj === currentObject) {
+                updateMeasurementArrow(currentObject.position);
+                
+                const initial = initialPositions.get(currentObject);
+                if(initial) {
+                    let displayText = '';
+                    
+                    if(transform.mode === 'translate') {
+                        const distance = currentObject.position.distanceTo(initial.position);
+                        displayText = `${distance.toFixed(3)} units`;
+                        document.getElementById('distance-display').querySelector('.label').textContent = 'DESPLAZAMIENTO';
+                    } else if(transform.mode === 'rotate') {
+                        const rotation = new THREE.Euler().setFromQuaternion(
+                            currentObject.quaternion.clone().multiply(
+                                new THREE.Quaternion().setFromEuler(initial.rotation).invert()
+                            )
+                        );
+                        const angle = Math.sqrt(rotation.x**2 + rotation.y**2 + rotation.z**2) * (180/Math.PI);
+                        displayText = `${angle.toFixed(1)}°`;
+                        document.getElementById('distance-display').querySelector('.label').textContent = 'ROTACIÓN';
+                    } else if(transform.mode === 'scale') {
+                        const scaleFactor = currentObject.scale.length() / initial.scale.length();
+                        displayText = `${scaleFactor.toFixed(3)}x`;
+                        document.getElementById('distance-display').querySelector('.label').textContent = 'ESCALA';
+                    }
+                    
+                    document.getElementById('distance-value').innerText = displayText;
+                    document.getElementById('distance-display').classList.add('active');
+                }
+                return;
+            }
+
+            // MODO SUBOBJETOS
+            const h = obj;
+            if(!h || !h.userData) return;
+            
+            const type = h.userData.type;
+            const verts = engine.originalVertices;
+
+            if(type === 'vertex') {
+                if(isMultiSelect) {
+                    const delta = new THREE.Vector3().subVectors(h.position, initialPositions.get(h));
+                    selectedObjects.forEach(obj => {
+                        if(obj !== h && obj.userData.index < verts.length) {
+                            const original = initialPositions.get(obj);
+                            obj.position.copy(original).add(delta);
+                            verts[obj.userData.index].copy(obj.position);
+                        }
+                    });
+                }
+                if(h.userData.index < verts.length) {
+                    verts[h.userData.index].copy(h.position);
+                }
+            } else if (type === 'edge') {
+                const v1Idx = h.userData.v1;
+                const v2Idx = h.userData.v2;
+                
+                if(v1Idx >= verts.length || v2Idx >= verts.length) return;
+                
+                const v1 = verts[v1Idx];
+                const v2 = verts[v2Idx];
+                const dist = v1.distanceTo(v2);
+                const dir = new THREE.Vector3().subVectors(v2, v1).normalize();
+                v1.copy(h.position).addScaledVector(dir, -dist/2);
+                v2.copy(h.position).addScaledVector(dir, dist/2);
+            } else if (type === 'face') {
+                if(h.userData.index >= 0 && h.userData.index < engine.originalQuads.length) {
+                    const q = engine.originalQuads[h.userData.index];
+                    const delta = new THREE.Vector3().subVectors(h.position, initialPositions.get(h));
+                    
+                    q.forEach(vIdx => {
+                        if(vIdx < verts.length) {
+                            const originalPos = initialPositions.get(`face_${h.userData.index}_v${vIdx}`);
+                            if(originalPos) {
+                                verts[vIdx].copy(originalPos).add(delta);
+                            }
+                        }
+                    });
+                }
+            }
+
+            updateMeasurementArrow(h.position);
+
+            if(initialPositions.has(h)) {
+                const distance = h.position.distanceTo(measurementOrigin);
+                document.getElementById('distance-value').innerText = `${distance.toFixed(3)} units`;
+                document.getElementById('distance-display').classList.add('active');
+            }
+
+            updateObjectGeometry(currentObject);
+        });
+
+        transform.addEventListener('mouseUp', () => {
+            document.getElementById('distance-display').classList.remove('active');
+            measurementArrow.visible = false;
+            
+            if(currentSubMode !== 'vertex' && !isObjectMode) rebuildHandles();
+        });
+
+        // ==========================================
+        // UI EVENTS
+        // ==========================================
+        
+        // ALTERNAR MODO OBJETO / EDITAR
+        document.getElementById('btn-object-mode').onclick = () => {
+            if(isObjectMode) return;
+            
+            isObjectMode = true;
+            isEditing = false;
+            
+            document.getElementById('btn-object-mode').classList.add('active');
+            document.getElementById('btn-subobject-mode').classList.remove('active');
+            document.getElementById('subobject-controls').classList.remove('active');
+            document.getElementById('mode-info').innerText = 'Modo Objeto';
+            
+            hideEdgeWeightPanel();
+            hideCameraModal();
+            rebuildHandles();
+            
+            const engine = currentObject.userData.engine;
+            const center = engine.getCenterOfMass();
+            currentObject.position.copy(center);
+            
+            currentObject.children.forEach(child => {
+                if(child.type !== 'Group') {
+                    child.position.copy(center).negate();
+                }
+            });
+            
+            engine.originalVertices.forEach(v => v.sub(center));
+            engine.vertices.forEach(v => v.sub(center));
+            
+            updateObjectGeometry(currentObject);
+            
+            transform.attach(currentObject);
+            transform.setMode('translate');
+            transform.visible = true;
+            
+            measurementOrigin.copy(currentObject.position);
+            enableNormalControls();
+        };
+        
+        document.getElementById('btn-subobject-mode').onclick = () => {
+            if(!isObjectMode) return;
+            
+            isObjectMode = false;
+            
+            document.getElementById('btn-object-mode').classList.remove('active');
+            document.getElementById('btn-subobject-mode').classList.add('active');
+            document.getElementById('subobject-controls').classList.add('active');
+            
+            const modeNames = { vertex: 'Vértice', edge: 'Borde', face: 'Cara' };
+            const selectMode = isMultiSelect ? 'Múltiple' : 'Individual';
+            document.getElementById('mode-info').innerText = `Modo ${modeNames[currentSubMode]} • ${selectMode}`;
+            
+            transform.detach();
+            
+            const engine = currentObject.userData.engine;
+            const worldPos = new THREE.Vector3();
+            const worldQuat = new THREE.Quaternion();
+            const worldScale = new THREE.Vector3();
+            currentObject.matrixWorld.decompose(worldPos, worldQuat, worldScale);
+            
+            const matrix = currentObject.matrix.clone();
+            engine.originalVertices.forEach(v => v.applyMatrix4(matrix));
+            engine.vertices.forEach(v => v.applyMatrix4(matrix));
+            
+            currentObject.position.set(0, 0, 0);
+            currentObject.rotation.set(0, 0, 0);
+            currentObject.scale.set(1, 1, 1);
+            currentObject.updateMatrix();
+            
+            currentObject.children.forEach(child => {
+                if(child.type !== 'Group') {
+                    child.position.set(0, 0, 0);
+                }
+            });
+            
+            updateObjectGeometry(currentObject);
+            rebuildHandles();
+            enableNormalControls();
+        };
+
+        // Submodos
+        function setSubMode(m) {
+            currentSubMode = m;
+            document.querySelectorAll('.btn[data-mode]').forEach(b => b.classList.remove('active'));
+            const modeBtn = document.querySelector(`.btn[data-mode="${m}"]`);
+            if(modeBtn) modeBtn.classList.add('active');
+
+            const modeNames = { vertex: 'Vértice', edge: 'Borde', face: 'Cara' };
+            const selectMode = isMultiSelect ? 'Múltiple' : 'Individual';
+            document.getElementById('mode-info').innerText = `Modo ${modeNames[m]} • ${selectMode}`;
+
+            hideEdgeWeightPanel();
+            rebuildHandles();
+            updateObjectGeometry(currentObject);
+        }
+
+        document.querySelectorAll('.btn[data-mode]').forEach(b => {
+            b.onclick = () => setSubMode(b.dataset.mode);
+        });
+
+        document.getElementById('btn-select-mode').onclick = () => {
+            isMultiSelect = !isMultiSelect;
+            const btn = document.getElementById('btn-select-mode');
+            btn.classList.toggle('active', isMultiSelect);
+            
+            const selectMode = isMultiSelect ? 'Múltiple' : 'Individual';
+            const modeNames = { vertex: 'Vértice', edge: 'Borde', face: 'Cara' };
+            document.getElementById('mode-info').innerText = `Modo ${modeNames[currentSubMode]} • ${selectMode}`;
+        };
+
+        // Acciones
+        document.getElementById('btn-extrude').onclick = () => {
+            const engine = currentObject.userData.engine;
+            if(currentSubMode === 'face' && selectedObjects.length > 0 && !isObjectMode) {
+                selectedObjects.forEach(obj => {
+                    if(obj.userData.type === 'face') {
+                        engine.extrudeFace(obj.userData.index);
+                    }
+                });
+                updateObjectGeometry(currentObject);
+                rebuildHandles();
+            }
+        };
+
+        document.getElementById('btn-subdivide').onclick = () => {
+            const engine = currentObject.userData.engine;
+            transform.detach();
+            engine.subdivideQuad(1);
+            updateObjectGeometry(currentObject);
+            rebuildHandles();
+        };
+
+        document.getElementById('btn-knife').onclick = () => {
+            showWarning('Herramienta de corte en desarrollo');
+        };
+
+        document.getElementById('btn-mirror').onclick = () => {
+            if(mirrorAxis === 'x') {
+                mirrorAxis = 'y';
+            } else if(mirrorAxis === 'y') {
+                mirrorAxis = 'z';
+            } else if(mirrorAxis === 'z') {
+                mirrorAxis = null;
+            } else {
+                mirrorAxis = 'x';
+            }
+            
+            const btn = document.getElementById('btn-mirror');
+            if(mirrorAxis) {
+                btn.classList.add('active');
+                btn.style.background = '#3498db';
+                btn.innerHTML = btn.innerHTML.replace(/Espejo.*/, `Espejo ${mirrorAxis.toUpperCase()}`);
+            } else {
+                btn.classList.remove('active');
+                btn.style.background = '#3498db';
+            }
+            
+            updateObjectGeometry(currentObject);
+        };
+
+        document.getElementById('btn-delete').onclick = () => {
+            const engine = currentObject.userData.engine;
+            if(currentSubMode === 'face' && selectedObjects.length > 0 && !isObjectMode) {
+                const indices = selectedObjects.map(o => o.userData.index).sort((a,b) => b-a);
+                indices.forEach(idx => engine.deleteFace(idx));
+                transform.detach();
+                updateObjectGeometry(currentObject);
+                rebuildHandles();
+            }
+        };
+
+        // SubSurf
+        document.getElementById('toggle-subsurf').onclick = function() {
+            subsurfEnabled = !subsurfEnabled;
+            this.classList.toggle('active', subsurfEnabled);
+            
+            const levelContainer = document.getElementById('subsurf-level-container');
+            levelContainer.style.display = subsurfEnabled ? 'flex' : 'none';
+            
+            document.getElementById('subsurf-info').innerText = 
+                `SubSurf: ${subsurfEnabled ? 'ON' : 'OFF'} (Nivel ${subsurfEnabled ? subsurfLevel : 0})`;
+            
+            updateObjectGeometry(currentObject);
+            if(!isObjectMode) rebuildHandles();
+        };
+
+        document.getElementById('subsurf-level').oninput = function() {
+            subsurfLevel = parseInt(this.value);
+            document.getElementById('subsurf-level-value').innerText = subsurfLevel;
+            document.getElementById('subsurf-info').innerText = `SubSurf: ${subsurfEnabled ? 'ON' : 'OFF'} (Nivel ${subsurfLevel})`;
+            
+            if(subsurfEnabled) {
+                updateObjectGeometry(currentObject);
+            }
+        };
+
+        // Edge Weight
+        document.getElementById('edge-weight-slider').oninput = function() {
+            const weight = parseInt(this.value) / 100;
+            document.getElementById('weight-display').innerText = weight.toFixed(2);
+            
+            if(selectedObjects.length > 0 && selectedObjects[0].userData.type === 'edge') {
+                const edgeKey = selectedObjects[0].userData.edgeKey;
+                edgeWeights.set(edgeKey, weight);
+                
+                if(subsurfEnabled) {
+                    updateObjectGeometry(currentObject);
+                }
+            }
+        };
+
+        function showEdgeWeightPanel(edgeKey) {
+            const panel = document.getElementById('edge-weight-panel');
+            panel.classList.add('active');
+            
+            const currentWeight = edgeWeights.get(edgeKey) || 0;
+            document.getElementById('edge-weight-slider').value = currentWeight * 100;
+            document.getElementById('weight-display').innerText = currentWeight.toFixed(2);
+        }
+
+        function hideEdgeWeightPanel() {
+            document.getElementById('edge-weight-panel').classList.remove('active');
+        }
+
+        // Primitivas
+        document.getElementById('btn-add-primitive').onclick = () => {
+            const menu = document.getElementById('primitives-menu');
+            menu.classList.toggle('active');
+        };
+
+        document.querySelectorAll('.primitive-btn[data-primitive]').forEach(btn => {
+            btn.onclick = () => {
+                const type = btn.dataset.primitive;
+                let engine;
+                
+                switch(type) {
+                    case 'cube': engine = QuadEngine.createCube(); break;
+                    case 'sphere': engine = QuadEngine.createSphere(12); break;
+                    case 'cylinder': engine = QuadEngine.createCylindro(); break;
+                    case 'cone': engine = QuadEngine.createCone(16); break;
+                    case 'plane': engine = QuadEngine.createPlane(4); break;
+                    case 'torus': engine = QuadEngine.createTorus(16, 8); break;
+                }
+                
+                const newObject = createSceneObject(engine);
+                newObject.position.set(Math.random() * 4 - 2, 0, Math.random() * 4 - 2);
+                
+                document.getElementById('primitives-menu').classList.remove('active');
+            };
+        });
+
+        // Archivo
+        document.getElementById('btn-file-menu').onclick = () => {
+            const menu = document.getElementById('file-menu');
+            menu.classList.toggle('active');
+        };
+
+        document.getElementById('btn-save').onclick = () => {
+            const engine = currentObject.userData.engine;
+            const data = engine.toJSON();
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'model.b3d';
+            a.click();
+            URL.revokeObjectURL(url);
+            document.getElementById('file-menu').classList.remove('active');
+        };
+
+        document.getElementById('btn-load').onclick = () => {
+            document.getElementById('file-input').click();
+            document.getElementById('file-menu').classList.remove('active');
+        };
+
+        document.getElementById('file-input').onchange = (e) => {
+            const file = e.target.files[0];
+            if(!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const data = JSON.parse(event.target.result);
+                    const engine = new QuadEngine();
+                    engine.fromJSON(data);
+                    
+                    const newObject = createSceneObject(engine);
+                    updateObjectGeometry(newObject);
+                } catch(error) {
+                    showWarning('Error al cargar archivo');
+                }
+            };
+            reader.readAsText(file);
+        };
+
+        document.getElementById('btn-export-fbx').onclick = () => {
+            const engine = currentObject.userData.engine;
+            const fbx = engine.exportFBX();
+            const blob = new Blob([fbx], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'model.fbx';
+            a.click();
+            URL.revokeObjectURL(url);
+            document.getElementById('file-menu').classList.remove('active');
+        };
+
+        document.getElementById('btn-export-obj').onclick = () => {
+            const engine = currentObject.userData.engine;
+            const obj = engine.exportOBJ();
+            const blob = new Blob([obj], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'model.obj';
+            a.click();
+            URL.revokeObjectURL(url);
+            document.getElementById('file-menu').classList.remove('active');
+        };
+
+        // Modal
+        function showCameraModal() {
+            document.getElementById('camera-modal').classList.add('active');
+            isEditing = true;
+            orbit.enabled = false;
+        }
+
+        function hideCameraModal() {
+            document.getElementById('camera-modal').classList.remove('active');
+            isEditing = false;
+            cameraMode = null;
+            updateCameraButtons();
+            enableNormalControls();
+        }
+
+        document.getElementById('btn-continue').onclick = hideCameraModal;
+        
+        document.getElementById('btn-finish').onclick = () => {
+            hideCameraModal();
+            hideEdgeWeightPanel();
+            transform.detach();
+            selectedObjects = [];
+            if(!isObjectMode) {
+                const helperGroup = currentObject.userData.helperGroup;
+                helperGroup.children.forEach(c => resetHandleColor(c));
+            }
+        };
+
+        function updateCameraButtons() {
+            document.querySelectorAll('.camera-btn').forEach(b => b.classList.remove('active'));
+            
+            orbit.enableRotate = false;
+            orbit.enablePan = false;
+            orbit.enableZoom = false;
+
+            if(cameraMode === 'rotate') {
+                document.getElementById('btn-rotate').classList.add('active');
+                orbit.enabled = true;
+                orbit.enableRotate = true;
+            } else if(cameraMode === 'pan') {
+                document.getElementById('btn-pan').classList.add('active');
+                orbit.enabled = true;
+                orbit.enablePan = true;
+            } else if(cameraMode === 'zoom') {
+                document.getElementById('btn-zoom').classList.add('active');
+                orbit.enabled = true;
+                orbit.enableZoom = true;
+            } else {
+                orbit.enabled = false;
+            }
+        }
+
+        document.getElementById('btn-rotate').onclick = () => {
+            cameraMode = cameraMode === 'rotate' ? null : 'rotate';
+            updateCameraButtons();
+        };
+
+        document.getElementById('btn-pan').onclick = () => {
+            cameraMode = cameraMode === 'pan' ? null : 'pan';
+            updateCameraButtons();
+        };
+
+        document.getElementById('btn-zoom').onclick = () => {
+            cameraMode = cameraMode === 'zoom' ? null : 'zoom';
+            updateCameraButtons();
+        };
+
+        // ==========================================
+        // RAYCASTER
+        // ==========================================
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        window.addEventListener('pointerdown', e => {
+            if(e.target.closest('#top-bar') || e.target.closest('#bottom-bar') || 
+               e.target.closest('.camera-btn') || e.target.closest('#camera-modal') ||
+               e.target.closest('#edge-weight-panel') || e.target.closest('#primitives-menu') ||
+               e.target.closest('#file-menu')) return;
+
+            if(isObjectMode) return;
+
+            const r = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((e.clientX - r.left)/r.width)*2-1;
+            mouse.y = -((e.clientY - r.top)/r.height)*2+1;
+            raycaster.setFromCamera(mouse, camera);
+
+            const helperGroup = currentObject.userData.helperGroup;
+            const hits = raycaster.intersectObjects(helperGroup.children);
+            
+            if(hits.length > 0) {
+                const hit = hits[0].object;
+
+                if(hit.userData.type !== 'edge') {
+                    hideEdgeWeightPanel();
+                }
+
+                if(isMultiSelect) {
+                    if(selectedObjects.includes(hit)) {
+                        selectedObjects = selectedObjects.filter(o => o !== hit);
+                        resetHandleColor(hit);
+                    } else {
+                        selectedObjects.push(hit);
+                        hit.material.color.setHex(0xffffff);
+                    }
+
+                    if(selectedObjects.length > 0) {
+                        transform.attach(selectedObjects[0]);
+                        initialPositions.clear();
+                        selectedObjects.forEach(obj => {
+                            initialPositions.set(obj, obj.position.clone());
+                        });
+                    } else {
+                        transform.detach();
+                    }
+                } else {
+                    selectedObjects = [hit];
+                    transform.attach(hit);
+                    transform.visible = true;
+                    
+                    helperGroup.children.forEach(c => resetHandleColor(c));
+                    hit.material.color.setHex(0xffffff);
+
+                    const engine = currentObject.userData.engine;
+                    if(hit.userData.type === 'face') {
+                        const q = engine.originalQuads[hit.userData.index];
+                        const verts = engine.originalVertices;
+                        q.forEach(vIdx => {
+                            initialPositions.set(`face_${hit.userData.index}_v${vIdx}`, verts[vIdx].clone());
+                        });
+                        initialPositions.set(hit, hit.position.clone());
+                    }
+
+                    if(hit.userData.type === 'edge') {
+                        showEdgeWeightPanel(hit.userData.edgeKey);
+                    }
+                }
+
+                if(!isEditing && selectedObjects.length > 0) {
+                    showCameraModal();
+                }
+            } else if (!transform.dragging && !isEditing) {
+                transform.detach();
+                selectedObjects = [];
+                hideEdgeWeightPanel();
+            }
+        });
+
+        // Atajos
+        window.addEventListener('keydown', e => {
+            if(e.key === 'g' || e.key === 'G') {
+                transform.setMode('translate');
+            } else if(e.key === 'r' || e.key === 'R') {
+                transform.setMode('rotate');
+            } else if(e.key === 's' || e.key === 'S') {
+                transform.setMode('scale');
+            }
+        });
+
+        function resetHandleColor(handle) {
+            let col = 0xffffff;
+            if(handle.userData.type === 'vertex') col = 0xe74c3c;
+            if(handle.userData.type === 'edge') col = 0xf1c40f;
+            if(handle.userData.type === 'face') col = 0x3498db;
+            handle.material.color.setHex(col);
+        }
+
+        function showWarning(msg = '¡Operación no disponible!') {
+            const warning = document.getElementById('warning');
+            warning.textContent = msg;
+            warning.style.display = 'block';
+            setTimeout(() => warning.style.display = 'none', 2000);
+        }
+
+        // ==========================================
+        // INIT
+        // ==========================================
+        updateObjectGeometry(currentObject);
+        
+        const center = initialEngine.getCenterOfMass();
+        currentObject.position.copy(center);
+        currentObject.children.forEach(child => {
+            if(child.type !== 'Group') {
+                child.position.copy(center).negate();
+            }
+        });
+        initialEngine.originalVertices.forEach(v => v.sub(center));
+        initialEngine.vertices.forEach(v => v.sub(center));
+        updateObjectGeometry(currentObject);
+        
+        transform.attach(currentObject);
+        transform.setMode('translate');
+        transform.visible = true;
+        measurementOrigin.copy(currentObject.position);
+
+        function animate() {
+            requestAnimationFrame(animate);
+            orbit.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        window.onresize = () => {
+            camera.aspect = window.innerWidth/window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        };
+    </script>
+</body>
+</html>
